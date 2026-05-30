@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Hello, {{ request.user.first_name|default:request.user.username }}</div>
+    <div class="page-subtitle">{{ request.user.get_role_display }} &bull; {{ scope_label }} &bull; {{ chu_count }} CHU{{ chu_count|pluralize }}</div>
+  </div>
+</div>
+
+<!-- Module Entry Cards -->
+<div class="module-grid">
+  <a href="{% url 'device_list' %}" class="module-card mod-assets">
+    <span class="mod-arrow"><i class="fa-solid fa-chevron-right"></i></span>
+    <div class="mod-icon"><i class="fa-solid fa-mobile-screen"></i></div>
+    <div class="mod-title">Assets</div>
+    <div class="mod-desc">Track devices across your CHUs — phones, tablets, and laptops.</div>
+    <div class="mod-stats">
+      <div class="mod-stat"><strong>{{ asset_counts.total }}</strong> Total</div>
+      <div class="mod-stat"><strong style="color:var(--success);">{{ asset_counts.active }}</strong> Active</div>
+      {% if asset_counts.damaged %}<div class="mod-stat"><strong style="color:var(--danger);">{{ asset_counts.damaged }}</strong> Damaged</div>{% endif %}
+      {% if asset_counts.lost %}<div class="mod-stat"><strong style="color:var(--gray-500);">{{ asset_counts.lost }}</strong> Lost</div>{% endif %}
+    </div>
+  </a>
+
+  <a href="{% url 'chp_list' %}" class="module-card mod-accounts">
+    <span class="mod-arrow"><i class="fa-solid fa-chevron-right"></i></span>
+    <div class="mod-icon"><i class="fa-solid fa-key"></i></div>
+    <div class="mod-title">Accounts</div>
+    <div class="mod-desc">Manage eCHIS, Dashboard, and registry credentials for CHPs and CHAs.</div>
+    <div class="mod-stats">
+      <div class="mod-stat"><strong>{{ cred_count }}</strong> CHP Profile{{ cred_count|pluralize }}</div>
+    </div>
+  </a>
+
+  <a href="{% url 'incident_list' %}" class="module-card mod-incidents">
+    <span class="mod-arrow"><i class="fa-solid fa-chevron-right"></i></span>
+    <div class="mod-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="mod-title">Incidents</div>
+    <div class="mod-desc">Raise, track, and resolve field issues — from device faults to app errors.</div>
+    <div class="mod-stats">
+      <div class="mod-stat"><strong style="color:var(--danger);">{{ incident_counts.open }}</strong> Open</div>
+      <div class="mod-stat"><strong style="color:var(--warning);">{{ incident_counts.in_progress }}</strong> In Progress</div>
+      <div class="mod-stat"><strong style="color:var(--success);">{{ incident_counts.resolved }}</strong> Resolved</div>
+    </div>
+  </a>
+</div>
+
+<!-- Asset Status Summary -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px;">
+
+  <!-- My Assigned Incidents -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-circle-user" style="color:var(--lg-blue);margin-right:6px;"></i>Assigned to Me</span>
+      <a href="{% url 'incident_list' %}" class="btn btn-ghost btn-sm">View all</a>
+    </div>
+    {% if my_incidents %}
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Incident</th><th>Priority</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for inc in my_incidents %}
+          <tr>
+            <td>
+              <a href="{% url 'incident_detail' inc.pk %}" style="color:var(--lg-blue);font-weight:600;text-decoration:none;font-size:0.82rem;">{{ inc.incident_number }}</a>
+              <div style="font-size:0.78rem;color:var(--gray-500);">{{ inc.title|truncatechars:40 }}</div>
+            </td>
+            <td><span class="badge badge-{{ inc.priority_color }}">{{ inc.get_priority_display }}</span></td>
+            <td><span class="badge badge-{{ inc.status_color }}">{{ inc.get_status_display }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:30px;">
+      <div class="empty-title">No incidents assigned to you</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Recent Incidents -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-clock-rotate-left" style="color:var(--lg-sky);margin-right:6px;"></i>Recent Incidents</span>
+      <a href="{% url 'incident_create' %}" class="btn btn-orange btn-sm"><i class="fa-solid fa-plus"></i> Raise</a>
+    </div>
+    {% if recent_incidents %}
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Incident</th><th>CHU</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for inc in recent_incidents %}
+          <tr>
+            <td>
+              <a href="{% url 'incident_detail' inc.pk %}" style="color:var(--lg-blue);font-weight:600;text-decoration:none;font-size:0.82rem;">{{ inc.incident_number }}</a>
+              <div style="font-size:0.78rem;color:var(--gray-500);">{{ inc.title|truncatechars:36 }}</div>
+            </td>
+            <td style="font-size:0.78rem;">{{ inc.chu.name|truncatechars:20 }}</td>
+            <td><span class="badge badge-{{ inc.status_color }}">{{ inc.get_status_display }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:30px;">
+      <div class="empty-title">No incidents yet</div>
+      <div class="empty-sub"><a href="{% url 'incident_create' %}">Raise the first one</a></div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Quick Stats Row -->
+<div class="stat-grid">
+  <div class="stat-card stat-success">
+    <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
+    <div><div class="stat-value">{{ asset_counts.active }}</div><div class="stat-label">Active Devices</div></div>
+  </div>
+  <div class="stat-card stat-warning">
+    <div class="stat-icon"><i class="fa-solid fa-wrench"></i></div>
+    <div><div class="stat-value">{{ asset_counts.under_repair }}</div><div class="stat-label">Under Repair</div></div>
+  </div>
+  <div class="stat-card stat-danger">
+    <div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div><div class="stat-value">{{ incident_counts.open }}</div><div class="stat-label">Open Incidents</div></div>
+  </div>
+  <div class="stat-card stat-orange">
+    <div class="stat-icon"><i class="fa-solid fa-arrow-up-right-dots"></i></div>
+    <div><div class="stat-value">{{ incident_counts.escalated }}</div><div class="stat-label">Escalated</div></div>
+  </div>
+  <div class="stat-card stat-sky">
+    <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+    <div><div class="stat-value">{{ cred_count }}</div><div class="stat-label">CHP Profiles</div></div>
+  </div>
+  <div class="stat-card stat-blue">
+    <div class="stat-icon"><i class="fa-solid fa-house-medical"></i></div>
+    <div><div class="stat-value">{{ chu_count }}</div><div class="stat-label">CHUs in Scope</div></div>
+  </div>
+</div>
+
+{% endblock %}

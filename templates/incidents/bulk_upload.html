@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}Bulk Upload — {{ type }}{% endblock %}
+{% block topbar_title %}Bulk Upload — {{ type }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Bulk Upload — {{ type }}</div>
+    <div class="page-subtitle">Import multiple records at once from a CSV file</div>
+  </div>
+  <div class="page-header-actions">
+    <a href="javascript:history.back()" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:860px;align-items:start;">
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-file-arrow-up" style="color:var(--lg-orange);margin-right:8px;"></i>Upload CSV File</span>
+    </div>
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom:20px;">
+          <label class="form-label req">Select File</label>
+          <div id="dropzone" style="border:2px dashed var(--gray-300);border-radius:var(--radius);padding:36px 20px;text-align:center;cursor:pointer;transition:var(--transition);background:var(--gray-50);" onclick="document.getElementById('csvInput').click()">
+            <div style="font-size:36px;color:var(--gray-300);margin-bottom:12px;"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <div style="font-weight:700;color:var(--gray-700);font-size:0.9rem;">Click to choose a CSV file</div>
+            <div style="font-size:0.78rem;color:var(--gray-400);margin-top:4px;">or drag and drop here</div>
+            <div id="fileName" style="margin-top:14px;font-size:0.84rem;color:var(--lg-blue);font-weight:700;display:none;padding:8px 12px;background:white;border-radius:6px;border:1px solid var(--lg-blue-mid);display:none;"></div>
+          </div>
+          <input type="file" name="csv_file" id="csvInput" accept=".csv" required style="display:none;" onchange="showFile(this)">
+        </div>
+        <button type="submit" class="btn btn-orange w-full" style="justify-content:center;padding:11px;">
+          <i class="fa-solid fa-file-import"></i> Import Records
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-circle-info" style="color:var(--lg-sky);margin-right:8px;"></i>Instructions</span>
+    </div>
+    <div class="card-body">
+      <div style="display:flex;flex-direction:column;gap:18px;margin-bottom:22px;">
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="width:28px;height:28px;background:var(--lg-blue);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0;margin-top:1px;">1</div>
+          <div>
+            <div style="font-weight:700;font-size:0.86rem;color:var(--gray-800);">Download the template</div>
+            <div style="font-size:0.78rem;color:var(--gray-500);margin-top:3px;line-height:1.5;">Use the button below to get the correct column headers.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="width:28px;height:28px;background:var(--lg-blue);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0;margin-top:1px;">2</div>
+          <div>
+            <div style="font-weight:700;font-size:0.86rem;color:var(--gray-800);">Fill in your data</div>
+            <div style="font-size:0.78rem;color:var(--gray-500);margin-top:3px;line-height:1.5;">Do not change or delete the header row. Save as CSV.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="width:28px;height:28px;background:var(--lg-blue);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0;margin-top:1px;">3</div>
+          <div>
+            <div style="font-weight:700;font-size:0.86rem;color:var(--gray-800);">Upload and review</div>
+            <div style="font-size:0.78rem;color:var(--gray-500);margin-top:3px;line-height:1.5;">A summary will show how many records imported and any row errors.</div>
+          </div>
+        </div>
+      </div>
+      <hr class="divider">
+      {% if type == 'Devices' %}
+      <a href="{% url 'device_template' %}" class="btn btn-outline w-full" style="justify-content:center;"><i class="fa-solid fa-download"></i> Download Device Template</a>
+      {% elif type == 'Credentials' %}
+      <a href="{% url 'credential_template' %}" class="btn btn-outline w-full" style="justify-content:center;"><i class="fa-solid fa-download"></i> Download Credentials Template</a>
+      {% elif type == 'Users' %}
+      <a href="{% url 'user_template' %}" class="btn btn-outline w-full" style="justify-content:center;"><i class="fa-solid fa-download"></i> Download User Template</a>
+      {% elif type == 'Incidents' %}
+      <a href="{% url 'incident_template' %}" class="btn btn-outline w-full" style="justify-content:center;"><i class="fa-solid fa-download"></i> Download Incidents Template</a>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showFile(input) {
+  const fn = document.getElementById('fileName');
+  const dz = document.getElementById('dropzone');
+  if (input.files && input.files.length) {
+    fn.textContent = '✓  ' + input.files[0].name;
+    fn.style.display = 'block';
+    dz.style.borderColor = 'var(--lg-blue)';
+    dz.style.background = 'var(--lg-blue-light)';
+  }
+}
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor='var(--lg-orange)'; dz.style.background='var(--lg-orange-light)'; });
+dz.addEventListener('dragleave', () => { dz.style.borderColor='var(--gray-300)'; dz.style.background='var(--gray-50)'; });
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  const input = document.getElementById('csvInput');
+  const dt = new DataTransfer();
+  dt.items.add(e.dataTransfer.files[0]);
+  input.files = dt.files;
+  showFile(input);
+});
+</script>
+{% endblock %}

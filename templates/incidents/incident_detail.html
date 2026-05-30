@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% block title %}{{ incident.incident_number }}{% endblock %}
+{% block topbar_title %}{{ incident.incident_number }} — {{ incident.title|truncatechars:40 }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="d-flex align-center gap-3" style="margin-bottom:6px;">
+      <span style="font-size:1.1rem;font-weight:800;color:var(--lg-blue);">{{ incident.incident_number }}</span>
+      <span class="badge badge-{{ incident.priority_color }}">{{ incident.get_priority_display }}</span>
+      <span class="badge badge-{{ incident.status_color }}">{{ incident.get_status_display }}</span>
+    </div>
+    <div class="page-title" style="font-size:1.2rem;">{{ incident.title }}</div>
+    <div class="page-subtitle">{{ incident.category.name|default:"Uncategorised" }} &bull; {{ incident.chu.name }}</div>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'incident_list' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    <a href="{% url 'incident_edit' incident.pk %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i> Edit</a>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 300px; gap:20px; align-items:start;">
+
+  <!-- Main Panel -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    <!-- Description -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Description</span></div>
+      <div class="card-body">
+        <p style="font-size:0.88rem;color:var(--gray-700);line-height:1.7;">{{ incident.description }}</p>
+        {% if incident.attachment %}
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-100);">
+          <a href="{{ incident.attachment.url }}" target="_blank" class="btn btn-outline btn-sm">
+            <i class="fa-solid fa-paperclip"></i> View Attachment
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Assign + Status Update -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Update Incident</span></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <!-- Assign -->
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="assign">
+            <div class="form-group">
+              <label class="form-label">Assign To</label>
+              <select name="assigned_to" class="form-control">
+                <option value="">— Unassigned —</option>
+                {% for u in assignable_users %}
+                <option value="{{ u.pk }}" {% if incident.assigned_to.pk == u.pk %}selected{% endif %}>{{ u.get_full_name }} ({{ u.get_role_display }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div style="margin-top:8px;">
+              <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-user-check"></i> Assign</button>
+            </div>
+          </form>
+
+          <!-- Status -->
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_status">
+            <div class="form-group">
+              <label class="form-label">Change Status</label>
+              <select name="status" class="form-control">
+                {% for val, label in status_choices %}
+                <option value="{{ val }}" {% if incident.status == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div style="margin-top:8px;">
+              <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-arrows-rotate"></i> Update Status</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comment Thread -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Activity Thread</span></div>
+      <div class="card-body">
+        <div class="thread">
+          <!-- Initial raise -->
+          <div class="thread-item">
+            <div class="t-avatar">{{ incident.raised_by.first_name|first|upper }}{{ incident.raised_by.last_name|first|upper }}</div>
+            <div class="t-bubble">
+              <div class="t-meta">{{ incident.raised_by.get_full_name }} &bull; {{ incident.created_at|date:"M d, Y H:i" }}</div>
+              <div class="t-text">Raised this incident.</div>
+            </div>
+          </div>
+
+          {% for update in incident.updates.all %}
+          <div class="thread-item">
+            <div class="t-avatar">{{ update.author.first_name|first|upper }}{{ update.author.last_name|first|upper }}</div>
+            <div class="t-bubble {% if update.old_status %}t-status-change{% endif %}">
+              <div class="t-meta">{{ update.author.get_full_name }} &bull; {{ update.timestamp|date:"M d, Y H:i" }}</div>
+              <div class="t-text">{{ update.comment }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Add Comment -->
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-100);">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="comment">
+            <div class="form-group">
+              <textarea name="comment" class="form-control" placeholder="Add a comment or update..." rows="3" required></textarea>
+            </div>
+            <div style="margin-top:8px;">
+              <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-comment"></i> Add Comment</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar Metadata -->
+  <div style="display:flex; flex-direction:column; gap:16px;">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Details</span></div>
+      <div class="card-body" style="padding:14px 16px;">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="meta-item">
+            <div class="meta-label">Status</div>
+            <div><span class="badge badge-{{ incident.status_color }}">{{ incident.get_status_display }}</span></div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Priority</div>
+            <div><span class="badge badge-{{ incident.priority_color }}">{{ incident.get_priority_display }}</span></div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Category</div>
+            <div class="meta-value">{{ incident.category.name|default:"—" }}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">CHU</div>
+            <div class="meta-value">{{ incident.chu.name }}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Ward</div>
+            <div class="meta-value">{{ incident.chu.ward.name }}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Sub-County</div>
+            <div class="meta-value">{{ incident.chu.ward.subcounty.name }}</div>
+          </div>
+          <hr class="divider" style="margin:4px 0;">
+          <div class="meta-item">
+            <div class="meta-label">Raised By</div>
+            <div class="meta-value">{{ incident.raised_by.get_full_name|default:"—" }}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Assigned To</div>
+            <div class="meta-value">{{ incident.assigned_to.get_full_name|default:"Unassigned" }}</div>
+          </div>
+          <hr class="divider" style="margin:4px 0;">
+          <div class="meta-item">
+            <div class="meta-label">Created</div>
+            <div class="meta-value">{{ incident.created_at|date:"M d, Y" }}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Last Updated</div>
+            <div class="meta-value">{{ incident.updated_at|date:"M d, Y H:i" }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Responsive: stack on small screens
+if (window.innerWidth < 768) {
+  document.querySelector('[style*="grid-template-columns:1fr 300px"]').style.gridTemplateColumns = '1fr';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}DHHD{% endblock %} | Digital Health Help Desk</title>
+  <meta name="theme-color" content="#003F87">
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23E8611A'/%3E%3Cpath d='M50 75 C50 75 20 55 20 37 C20 27 28 20 38 20 C44 20 49 23 50 26 C51 23 56 20 62 20 C72 20 80 27 80 37 C80 55 50 75 50 75Z' fill='white'/%3E%3Cpolyline points='28,42 36,42 40,32 44,52 48,38 52,38 56,42 72,42' fill='none' stroke='%23E8611A' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <!-- Font Awesome async -->
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"></noscript>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <style>
+    /* Inline critical styles - cache-proof */
+    .chu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:28px;}
+    .chu-card{background:white;border-radius:12px;padding:22px 20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.07);text-decoration:none;color:inherit;transition:all .18s ease;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden;}
+    .chu-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.09);transform:translateY(-2px);border-color:#003F87;}
+    .chu-card .chu-name{font-size:.92rem;font-weight:700;color:#0f172a;line-height:1.4;}
+    .chu-card .chu-sub{font-size:.75rem;color:#94a3b8;}
+    .chu-card .chu-link{font-size:.75rem;color:#003F87;font-weight:700;}
+    .section-label{display:flex;align-items:center;gap:10px;font-size:.9rem;font-weight:800;color:#1e293b;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #e8f0fb;}
+    .section-label .count-pill{background:#003F87;color:white;font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:20px;}
+    .stat-card{background:white;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.07);display:flex;flex-direction:column;gap:8px;transition:all .18s ease;text-decoration:none;color:inherit;border-left:4px solid transparent;position:relative;overflow:hidden;}
+    .stat-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.09);transform:translateY(-2px);}
+    .stat-card .stat-value{font-size:2rem;font-weight:800;line-height:1;letter-spacing:-1px;}
+    .stat-card .stat-label{font-size:.73rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+    .stat-card .stat-icon{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:28px;opacity:.08;}
+    .stat-blue{border-left-color:#003F87;}.stat-blue .stat-value{color:#003F87;}
+    .stat-orange{border-left-color:#E8611A;}.stat-orange .stat-value{color:#E8611A;}
+    .stat-success{border-left-color:#16a34a;}.stat-success .stat-value{color:#16a34a;}
+    .stat-warning{border-left-color:#d97706;}.stat-warning .stat-value{color:#d97706;}
+    .stat-danger{border-left-color:#dc2626;}.stat-danger .stat-value{color:#dc2626;}
+    .stat-gray{border-left-color:#cbd5e1;}.stat-gray .stat-value{color:#64748b;}
+    .stat-sky{border-left-color:#4A90D9;}.stat-sky .stat-value{color:#4A90D9;}
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;}
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+      <div>
+        <div class="brand-name">Digital Health Help Desk</div>
+        <div class="brand-sub">Living Goods Kenya</div>
+      </div>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}</div>
+      <div style="overflow:hidden;">
+        <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+        <div class="user-role">{{ request.user.get_role_display }} &bull; {{ request.user.get_scope_label }}</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-gauge"></i></span> Dashboard
+      </a>
+
+      <div class="nav-section">Modules</div>
+      <a href="{% url 'device_list' %}" class="nav-item {% if 'device' in request.resolver_match.url_name %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-mobile-screen"></i></span> Assets
+      </a>
+      <a href="{% url 'chp_list' %}" class="nav-item {% if 'chp' in request.resolver_match.url_name or 'cha' in request.resolver_match.url_name %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-key"></i></span> Accounts
+      </a>
+      <a href="{% url 'incident_list' %}" class="nav-item {% if 'incident' in request.resolver_match.url_name %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-triangle-exclamation"></i></span> Incidents
+      </a>
+
+      {% if request.user.role != 'cha' %}
+      <div class="nav-section">Analytics</div>
+      <a href="{% url 'incident_analytics' %}" class="nav-item {% if request.resolver_match.url_name == 'incident_analytics' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span> Incident Analytics
+      </a>
+      {% endif %}
+
+      {% if request.user.can_manage_users %}
+      <div class="nav-section">Administration</div>
+      <a href="{% url 'user_list' %}" class="nav-item {% if 'user' in request.resolver_match.url_name %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-users"></i></span> Users
+      </a>
+      {% if request.user.is_superuser_or_tech %}
+      <a href="{% url 'category_list' %}" class="nav-item {% if 'category' in request.resolver_match.url_name %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-tags"></i></span> Categories
+      </a>
+      {% endif %}
+      {% if request.user.role == 'superuser' %}
+      <a href="{% url 'audit_log' %}" class="nav-item {% if request.resolver_match.url_name == 'audit_log' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Audit Log
+      </a>
+      {% endif %}
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+      <a href="{% url 'logout' %}" class="nav-item" style="padding:8px 0;border:none;border-radius:6px;">
+        <span class="nav-icon"><i class="fa-solid fa-arrow-right-from-bracket"></i></span> Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="main-content">
+    <header class="topbar">
+      <button class="btn-icon mob-toggle" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
+      <span class="topbar-title">{% block topbar_title %}{% endblock %}</span>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="installBtn" style="display:none;" title="Install App"><i class="fa-solid fa-download"></i></button>
+        <a href="{% url 'notification_list' %}" class="btn-icon" title="Notifications">
+          <i class="fa-solid fa-bell"></i>
+          {% if unread_notifications %}<span class="badge-dot"></span>{% endif %}
+        </a>
+        <a href="{% url 'change_password' %}" class="btn-icon" title="Change Password"><i class="fa-solid fa-gear"></i></a>
+      </div>
+    </header>
+
+    {% if messages %}
+    <div style="padding:12px 28px 0;">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }}" data-auto-dismiss>
+        <i class="fa-solid {% if message.tags == 'success' %}fa-circle-check{% elif message.tags == 'error' %}fa-circle-xmark{% else %}fa-circle-info{% endif %}"></i>
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="page-content">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+<script src="{% static 'js/main.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

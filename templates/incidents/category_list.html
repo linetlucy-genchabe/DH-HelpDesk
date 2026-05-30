@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Incident Categories{% endblock %}
+{% block topbar_title %}Incident Categories{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Incident Categories</div>
+    <div class="page-subtitle">Manage issue types used when raising incidents</div>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'category_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Category</a>
+  </div>
+</div>
+
+<div class="card" style="max-width:700px;">
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Category Name</th><th>Description</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for cat in categories %}
+        <tr>
+          <td style="font-weight:600;">{{ cat.name }}</td>
+          <td style="font-size:0.82rem;color:var(--gray-500);">{{ cat.description|default:"—"|truncatechars:60 }}</td>
+          <td>{% if cat.is_active %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-secondary">Inactive</span>{% endif %}</td>
+          <td><!-- edit inline via admin for now --></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4"><div class="empty-state" style="padding:30px;"><div class="empty-title">No categories yet</div></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

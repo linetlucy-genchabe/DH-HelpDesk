@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}Incident Analytics{% endblock %}
+{% block topbar_title %}Incident Analytics{% endblock %}
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Incident Analytics</div>
+    <div class="page-subtitle">Issue distribution for your region — {{ request.user.get_scope_label }}</div>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'incident_list' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-list"></i> All Incidents</a>
+  </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="stat-grid">
+  <div class="stat-card stat-blue">
+    <div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div><div class="stat-value">{{ total }}</div><div class="stat-label">Total</div></div>
+  </div>
+  {% for s in by_status %}
+  <div class="stat-card stat-{% if s.status == 'open' %}danger{% elif s.status == 'in_progress' %}warning{% elif s.status == 'resolved' %}success{% elif s.status == 'escalated' %}orange{% else %}gray{% endif %}">
+    <div class="stat-icon">
+      <i class="fa-solid {% if s.status == 'open' %}fa-circle-exclamation{% elif s.status == 'in_progress' %}fa-spinner{% elif s.status == 'resolved' %}fa-circle-check{% elif s.status == 'escalated' %}fa-arrow-up{% else %}fa-lock{% endif %}"></i>
+    </div>
+    <div><div class="stat-value">{{ s.count }}</div><div class="stat-label">{{ s.label }}</div></div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Charts Row -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">By Status</span></div>
+    <div class="card-body" style="height:260px;display:flex;align-items:center;justify-content:center;">
+      <canvas id="statusChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">By Priority</span></div>
+    <div class="card-body" style="height:260px;display:flex;align-items:center;justify-content:center;">
+      <canvas id="priorityChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">By Category</span></div>
+    <div class="card-body" style="height:280px;">
+      <canvas id="categoryChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">Top Raisers (by CHA)</span></div>
+    <div class="card-body" style="height:280px;">
+      <canvas id="chaChart"></canvas>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const LG_BLUE = '#003F87';
+const LG_ORANGE = '#E8611A';
+const LG_SKY = '#4A90D9';
+
+function makeDonut(id, labels, data, colors) {
+  new Chart(document.getElementById(id), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { family: 'DM Sans', size: 11 }, boxWidth: 12 } } } }
+  });
+}
+
+function makeBar(id, labels, data, color) {
+  new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 5, borderSkipped: false }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family: 'DM Sans', size: 11 } } },
+        y: { grid: { display: false }, ticks: { font: { family: 'DM Sans', size: 11 } } }
+      }
+    }
+  });
+}
+
+const statusData = {{ by_status|safe }};
+const priorityData = {{ by_priority|safe }};
+const catData = {{ by_category|safe }};
+const chaData = {{ by_cha|safe }};
+
+makeDonut('statusChart',
+  statusData.map(s => s.label),
+  statusData.map(s => s.count),
+  [LG_ORANGE, LG_SKY, '#d97706', '#16a34a', '#64748b']
+);
+
+makeDonut('priorityChart',
+  priorityData.map(p => p.label),
+  priorityData.map(p => p.count),
+  ['#16a34a', '#0891b2', '#d97706', '#dc2626']
+);
+
+makeBar('categoryChart',
+  catData.map(c => c.category__name || 'Uncategorised'),
+  catData.map(c => c.count),
+  LG_BLUE
+);
+
+makeBar('chaChart',
+  chaData.map(c => (c.raised_by__first_name || '') + ' ' + (c.raised_by__last_name || '')),
+  chaData.map(c => c.count),
+  LG_ORANGE
+);
+</script>
+{% endblock %}

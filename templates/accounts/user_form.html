@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block topbar_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">{{ title }}</div>
+    {% if obj %}<div class="page-subtitle">{{ obj.username }}</div>{% endif %}
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'user_list' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+  </div>
+</div>
+
+<div class="card" style="max-width:860px;">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label req">First Name</label>
+          <input type="text" name="first_name" class="form-control" value="{{ form.first_name.value|default:'' }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label req">Last Name</label>
+          <input type="text" name="last_name" class="form-control" value="{{ form.last_name.value|default:'' }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control" value="{{ form.email.value|default:'' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input type="text" name="phone" class="form-control" value="{{ form.phone.value|default:'' }}" placeholder="07XXXXXXXX">
+        </div>
+        <div class="form-group">
+          <label class="form-label req">Role</label>
+          <select name="role" class="form-control" id="roleSelect" required>
+            {% for val, label in form.fields.role.choices %}
+            <option value="{{ val }}" {% if form.role.value == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">County</label>
+          <select name="county" class="form-control">
+            <option value="">— None —</option>
+            {% for c in form.fields.county.queryset %}
+            <option value="{{ c.pk }}" {% if form.county.value|stringformat:"s" == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sub-County</label>
+          <select name="subcounty" class="form-control">
+            <option value="">— None —</option>
+            {% for sc in form.fields.subcounty.queryset %}
+            <option value="{{ sc.pk }}" {% if form.subcounty.value|stringformat:"s" == sc.pk|stringformat:"s" %}selected{% endif %}>{{ sc.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ward</label>
+          <select name="ward" class="form-control">
+            <option value="">— None —</option>
+            {% for w in form.fields.ward.queryset %}
+            <option value="{{ w.pk }}" {% if form.ward.value|stringformat:"s" == w.pk|stringformat:"s" %}selected{% endif %}>{{ w.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">Assigned CHUs <span class="form-hint">(hold Ctrl/Cmd to select multiple)</span></label>
+          <select name="chus" class="form-control" multiple style="min-height:120px;">
+            {% for chu in form.fields.chus.queryset %}
+            <option value="{{ chu.pk }}" {% if chu.pk in form.chus.value %}selected{% endif %}>{{ chu.name }} ({{ chu.ward.subcounty.name }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" name="is_active" {% if form.is_active.value != False %}checked{% endif %}> Active account
+          </label>
+        </div>
+      </div>
+      <hr class="divider">
+      {% if not obj %}
+      <div class="alert alert-info" style="margin-bottom:16px;">
+        <i class="fa-solid fa-circle-info"></i>
+        Username and a random password will be auto-generated. The credentials will be displayed after saving — copy them before navigating away.
+      </div>
+      {% endif %}
+      <div class="d-flex gap-3">
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> {% if obj %}Update{% else %}Create{% endif %} User</button>
+        <a href="{% url 'user_list' %}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

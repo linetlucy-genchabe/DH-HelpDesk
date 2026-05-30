@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% block title %}Assets{% endblock %}
+{% block topbar_title %}Assets — Device Registry{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Device Registry</div>
+    <div class="page-subtitle">
+      {% for crumb in breadcrumb %}<a href="{{ crumb.url }}" style="color:var(--lg-blue);text-decoration:none;font-weight:600;">{{ crumb.label }}</a>{% if not forloop.last %} <span style="color:var(--gray-300);margin:0 5px;">/</span>{% endif %}{% endfor %}
+    </div>
+  </div>
+  <div class="page-header-actions">
+    {% if request.user.can_bulk_upload %}
+    <a href="{% url 'device_template' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-download"></i> Template</a>
+    <a href="{% url 'bulk_upload_devices' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-upload"></i> Bulk Upload</a>
+    {% endif %}
+    {% if request.user.can_add_devices %}
+    <a href="{% url 'device_create' %}" class="btn btn-orange"><i class="fa-solid fa-plus"></i> Add Device</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if drill_level != 'devices' %}
+
+<!-- TOP SUMMARY STATS -->
+<div class="stat-grid" style="margin-bottom:28px;">
+  <div class="stat-card stat-blue">
+    <div class="stat-value">{{ summary.total }}</div>
+    <div class="stat-label">Total Devices</div>
+    <i class="fa-solid fa-mobile-screen stat-icon"></i>
+  </div>
+  <div class="stat-card stat-success">
+    <div class="stat-value">{{ summary.active }}</div>
+    <div class="stat-label">Active</div>
+    <i class="fa-solid fa-circle-check stat-icon"></i>
+  </div>
+  <div class="stat-card stat-danger">
+    <div class="stat-value">{{ summary.damaged }}</div>
+    <div class="stat-label">Damaged</div>
+    <i class="fa-solid fa-circle-xmark stat-icon"></i>
+  </div>
+  <div class="stat-card stat-warning">
+    <div class="stat-value">{{ summary.under_repair }}</div>
+    <div class="stat-label">Under Repair</div>
+    <i class="fa-solid fa-wrench stat-icon"></i>
+  </div>
+  <div class="stat-card stat-gray">
+    <div class="stat-value">{{ summary.lost }}</div>
+    <div class="stat-label">Lost</div>
+    <i class="fa-solid fa-question stat-icon"></i>
+  </div>
+</div>
+
+<!-- DRILL-DOWN CARDS -->
+<div class="section-label">
+  {% if drill_level == 'countries' %}Countries
+  {% elif drill_level == 'counties' %}Counties
+  {% elif drill_level == 'subcounties' %}Sub-Counties
+  {% elif drill_level == 'chus' %}Community Health Units
+  {% endif %}
+  <span class="count-pill">{{ items|length }}</span>
+</div>
+
+<div class="chu-grid">
+  {% for item in items %}
+  <a href="{{ item.next_url }}" class="chu-card">
+    <div class="chu-name">{{ item.name }}</div>
+    <div class="chu-sub">{{ item.sub_label }}</div>
+    {% if drill_level == 'chus' %}
+    <!-- Only show counts at CHU level -->
+    <div style="display:flex;gap:16px;margin-top:12px;padding-top:10px;border-top:1px solid var(--gray-100);">
+      <div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--gray-900);line-height:1;">{{ item.total }}</div>
+        <div style="font-size:0.65rem;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Total</div>
+      </div>
+      <div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--success);line-height:1;">{{ item.active }}</div>
+        <div style="font-size:0.65rem;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Active</div>
+      </div>
+      {% if item.damaged %}
+      <div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--danger);line-height:1;">{{ item.damaged }}</div>
+        <div style="font-size:0.65rem;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Damaged</div>
+      </div>
+      {% endif %}
+      {% if item.lost %}
+      <div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--gray-400);line-height:1;">{{ item.lost }}</div>
+        <div style="font-size:0.65rem;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Lost</div>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+    <div style="text-align:right;margin-top:10px;">
+      <span style="font-size:0.75rem;color:var(--lg-blue);font-weight:700;">{{ item.next_label }} →</span>
+    </div>
+  </a>
+  {% empty %}
+  <p style="color:var(--gray-400);">No items found.</p>
+  {% endfor %}
+</div>
+
+{% else %}
+<!-- DEVICE TABLE LEVEL -->
+<div class="stat-grid" style="margin-bottom:20px;">
+  <a href="?{% if chu_filter %}level=devices&chu={{ chu_filter }}&{% endif %}status=" class="stat-card stat-blue">
+    <div class="stat-value">{{ counts.total }}</div><div class="stat-label">Total</div>
+    <i class="fa-solid fa-mobile-screen stat-icon"></i>
+  </a>
+  <a href="?{% if chu_filter %}level=devices&chu={{ chu_filter }}&{% endif %}status=active" class="stat-card stat-success">
+    <div class="stat-value">{{ counts.active }}</div><div class="stat-label">Active</div>
+    <i class="fa-solid fa-circle-check stat-icon"></i>
+  </a>
+  <a href="?{% if chu_filter %}level=devices&chu={{ chu_filter }}&{% endif %}status=damaged" class="stat-card stat-danger">
+    <div class="stat-value">{{ counts.damaged }}</div><div class="stat-label">Damaged</div>
+    <i class="fa-solid fa-circle-xmark stat-icon"></i>
+  </a>
+  <a href="?{% if chu_filter %}level=devices&chu={{ chu_filter }}&{% endif %}status=under_repair" class="stat-card stat-warning">
+    <div class="stat-value">{{ counts.under_repair }}</div><div class="stat-label">Under Repair</div>
+    <i class="fa-solid fa-wrench stat-icon"></i>
+  </a>
+  <a href="?{% if chu_filter %}level=devices&chu={{ chu_filter }}&{% endif %}status=lost" class="stat-card stat-gray">
+    <div class="stat-value">{{ counts.lost }}</div><div class="stat-label">Lost</div>
+    <i class="fa-solid fa-question stat-icon"></i>
+  </a>
+</div>
+
+<form method="get" class="filter-bar">
+  {% if chu_filter %}<input type="hidden" name="level" value="devices"><input type="hidden" name="chu" value="{{ chu_filter }}">{% endif %}
+  <div class="search-wrap">
+    <span class="si"><i class="fa-solid fa-magnifying-glass"></i></span>
+    <input type="text" name="q" class="form-control" placeholder="Search name, IMEI, serial..." value="{{ search }}">
+  </div>
+  <select name="status" class="form-control" style="width:auto;">
+    <option value="">All Status</option>
+    <option value="active" {% if status_f == 'active' %}selected{% endif %}>Active</option>
+    <option value="damaged" {% if status_f == 'damaged' %}selected{% endif %}>Damaged</option>
+    <option value="under_repair" {% if status_f == 'under_repair' %}selected{% endif %}>Under Repair</option>
+    <option value="lost" {% if status_f == 'lost' %}selected{% endif %}>Lost</option>
+  </select>
+  <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+  {% if search or status_f %}<a href="{% url 'device_list' %}{% if chu_filter %}?level=devices&chu={{ chu_filter }}{% endif %}" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+</form>
+
+<div class="card">
+  {% if devices %}
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Name</th><th>Role</th><th>Type</th><th>Model</th><th>Serial No.</th><th>IMEI</th><th>CHU</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for device in devices %}
+        <tr>
+          <td style="font-weight:700;">{{ device.assigned_to_name }}</td>
+          <td><span class="badge badge-secondary">{{ device.get_assigned_to_role_display }}</span></td>
+          <td>{{ device.get_device_type_display }}</td>
+          <td>{{ device.phone_model|default:"—" }}</td>
+          <td class="font-mono" style="font-size:0.77rem;color:var(--gray-500);">{{ device.serial_number|default:"—" }}</td>
+          <td class="font-mono" style="font-size:0.77rem;color:var(--gray-500);">{{ device.imei|default:"—" }}</td>
+          <td style="font-size:0.8rem;">{{ device.chu.name }}</td>
+          <td><span class="badge badge-{{ device.status_color }}">{{ device.get_status_display }}</span></td>
+          <td>
+            <div class="d-flex gap-2">
+              <a href="{% url 'device_edit' device.pk %}" class="btn btn-outline btn-xs"><i class="fa-solid fa-pen"></i> Edit</a>
+              {% if request.user.can_delete %}
+              <form method="post" action="{% url 'device_delete' device.pk %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-xs" data-confirm="Delete?"><i class="fa-solid fa-trash"></i></button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon"><i class="fa-solid fa-mobile-screen"></i></div>
+    <div class="empty-title">No devices found</div>
+    <div class="empty-sub">{% if search or status_f %}Try adjusting filters.{% else %}No devices yet.{% endif %}</div>
+    {% if request.user.can_add_devices and not search and not status_f %}
+    <a href="{% url 'device_create' %}" class="btn btn-orange btn-sm" style="margin-top:16px;"><i class="fa-solid fa-plus"></i> Add Device</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

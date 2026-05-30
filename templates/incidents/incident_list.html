@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Incidents{% endblock %}
+{% block topbar_title %}Incidents{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Incidents</div>
+    <div class="page-subtitle">{{ request.user.get_scope_label }} &bull; {{ request.user.get_role_display }}</div>
+  </div>
+  <div class="page-header-actions">
+    {% if request.user.can_bulk_upload %}
+    <a href="{% url 'incident_template' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-download"></i> Template</a>
+    <a href="{% url 'bulk_upload_incidents' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-upload"></i> Bulk Upload</a>
+    {% endif %}
+    {% if request.user.role != 'cha' %}
+    <a href="{% url 'incident_analytics' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-chart-pie"></i> Analytics</a>
+    {% endif %}
+    <a href="{% url 'incident_create' %}" class="btn btn-orange"><i class="fa-solid fa-plus"></i> Raise Incident</a>
+  </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="stat-grid">
+  <a href="?status=open" class="stat-card stat-danger">
+    <div class="stat-value">{{ counts.open }}</div>
+    <div class="stat-label">Open</div>
+    <i class="fa-solid fa-circle-exclamation stat-icon"></i>
+  </a>
+  <a href="?status=in_progress" class="stat-card stat-warning">
+    <div class="stat-value">{{ counts.in_progress }}</div>
+    <div class="stat-label">In Progress</div>
+    <i class="fa-solid fa-spinner stat-icon"></i>
+  </a>
+  <a href="?status=escalated" class="stat-card stat-orange">
+    <div class="stat-value">{{ counts.escalated }}</div>
+    <div class="stat-label">Escalated</div>
+    <i class="fa-solid fa-arrow-up stat-icon"></i>
+  </a>
+  <a href="?status=resolved" class="stat-card stat-success">
+    <div class="stat-value">{{ counts.resolved }}</div>
+    <div class="stat-label">Resolved</div>
+    <i class="fa-solid fa-circle-check stat-icon"></i>
+  </a>
+  <a href="?status=closed" class="stat-card stat-gray">
+    <div class="stat-value">{{ counts.closed }}</div>
+    <div class="stat-label">Closed</div>
+    <i class="fa-solid fa-lock stat-icon"></i>
+  </a>
+</div>
+
+<!-- Filter Bar -->
+<form method="get" class="filter-bar">
+  <div class="search-wrap">
+    <span class="si"><i class="fa-solid fa-magnifying-glass"></i></span>
+    <input type="text" name="q" class="form-control" placeholder="Search incident number, title..." value="{{ search }}">
+  </div>
+  <select name="status" class="form-control" style="width:auto;">
+    <option value="">All Status</option>
+    <option value="open" {% if status_f == 'open' %}selected{% endif %}>Open</option>
+    <option value="in_progress" {% if status_f == 'in_progress' %}selected{% endif %}>In Progress</option>
+    <option value="escalated" {% if status_f == 'escalated' %}selected{% endif %}>Escalated</option>
+    <option value="resolved" {% if status_f == 'resolved' %}selected{% endif %}>Resolved</option>
+    <option value="closed" {% if status_f == 'closed' %}selected{% endif %}>Closed</option>
+  </select>
+  <select name="priority" class="form-control" style="width:auto;">
+    <option value="">All Priority</option>
+    <option value="low" {% if priority_f == 'low' %}selected{% endif %}>Low</option>
+    <option value="medium" {% if priority_f == 'medium' %}selected{% endif %}>Medium</option>
+    <option value="high" {% if priority_f == 'high' %}selected{% endif %}>High</option>
+    <option value="critical" {% if priority_f == 'critical' %}selected{% endif %}>Critical</option>
+  </select>
+  <select name="category" class="form-control" style="width:auto;">
+    <option value="">All Categories</option>
+    {% for cat in categories %}<option value="{{ cat.pk }}" {% if cat_f == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>{% endfor %}
+  </select>
+  <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+  {% if search or status_f or priority_f or cat_f %}<a href="{% url 'incident_list' %}" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+</form>
+
+<div class="card">
+  {% if incidents %}
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Title</th>
+          <th>Category</th>
+          <th>CHU</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Raised By</th>
+          <th>Assigned To</th>
+          <th>Date</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inc in incidents %}
+        <tr>
+          <td>
+            <a href="{% url 'incident_detail' inc.pk %}" style="color:var(--lg-blue);font-weight:800;text-decoration:none;font-family:var(--font-mono);font-size:0.82rem;">{{ inc.incident_number }}</a>
+          </td>
+          <td style="max-width:200px;font-weight:600;font-size:0.84rem;">{{ inc.title|truncatechars:45 }}</td>
+          <td style="font-size:0.78rem;color:var(--gray-500);">{{ inc.category.name|default:"—" }}</td>
+          <td style="font-size:0.78rem;">{{ inc.chu.name|truncatechars:22 }}</td>
+          <td><span class="badge badge-{{ inc.priority_color }}">{{ inc.get_priority_display }}</span></td>
+          <td><span class="badge badge-{{ inc.status_color }}">{{ inc.get_status_display }}</span></td>
+          <td style="font-size:0.78rem;">{{ inc.raised_by.get_full_name|default:"—"|truncatechars:18 }}</td>
+          <td style="font-size:0.78rem;">
+            {% if inc.assigned_to %}{{ inc.assigned_to.get_full_name|truncatechars:18 }}
+            {% else %}<span class="text-muted">Unassigned</span>{% endif %}
+          </td>
+          <td style="font-size:0.75rem;color:var(--gray-400);font-weight:600;">{{ inc.created_at|date:"M d" }}</td>
+          <td><a href="{% url 'incident_detail' inc.pk %}" class="btn btn-outline btn-xs">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="empty-title">No incidents found</div>
+    <div class="empty-sub">{% if search or status_f or priority_f or cat_f %}Try adjusting your filters.{% else %}No incidents raised yet.{% endif %}</div>
+    {% if not search and not status_f %}
+    <a href="{% url 'incident_create' %}" class="btn btn-orange btn-sm"><i class="fa-solid fa-plus"></i> Raise First Incident</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

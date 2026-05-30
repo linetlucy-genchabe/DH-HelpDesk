@@ -1,0 +1,10 @@
+[
+  {"model": "core.incidentcategory", "pk": 1, "fields": {"name": "Device Issue", "description": "Hardware problems — cracked screens, battery issues, charging faults", "is_active": true, "created_by": null}},
+  {"model": "core.incidentcategory", "pk": 2, "fields": {"name": "App Error", "description": "eCHIS, Dashboard or registry app crashes, freezes or unexpected behaviour", "is_active": true, "created_by": null}},
+  {"model": "core.incidentcategory", "pk": 3, "fields": {"name": "Password Reset", "description": "CHP or CHA locked out or forgotten password", "is_active": true, "created_by": null}},
+  {"model": "core.incidentcategory", "pk": 4, "fields": {"name": "eCHIS Logout", "description": "eCHIS keeps logging users out unexpectedly", "is_active": true, "created_by": null}},
+  {"model": "core.incidentcategory", "pk": 5, "fields": {"name": "Sync Error", "description": "Data not syncing to server — offline records stuck", "is_active": true, "created_by": null}},
+  {"model": "core.incidentcategory", "pk": 6, "fields": {"name": "Connectivity Issue", "description": "Network, data bundles or internet access problems", "is_active": true, "created_by": null}},
+  {"model": "core.incidentcategory", "pk": 7, "fields": {"name": "Missing Data", "description": "Submitted records not appearing in dashboard or reports", "is_active": true, "created_by": null}},
+  {"model": "core.incidentcategory", "pk": 8, "fields": {"name": "Other", "description": "Any issue not covered by the categories above", "is_active": true, "created_by": null}}
+]

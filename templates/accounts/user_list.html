@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}User Management{% endblock %}
+{% block topbar_title %}User Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">User Management</div>
+    <div class="page-subtitle">Manage system accounts within your scope</div>
+  </div>
+  <div class="page-header-actions">
+    {% if request.user.can_bulk_upload %}
+    <a href="{% url 'user_template' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-download"></i> Template</a>
+    <a href="{% url 'bulk_upload_users' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-upload"></i> Bulk Upload</a>
+    {% endif %}
+    <a href="{% url 'user_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Create User</a>
+  </div>
+</div>
+
+<div class="alert alert-info">
+  <i class="fa-solid fa-circle-info"></i>
+  When you create a user, their username and password are shown here. You are responsible for distributing credentials to the user directly.
+</div>
+
+<div class="card">
+  {% if users %}
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Username</th>
+          <th>Role</th>
+          <th>Scope</th>
+          <th>Phone</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td style="font-weight:600;">{{ u.get_full_name|default:u.username }}</td>
+          <td class="font-mono" style="font-size:0.82rem;">{{ u.username }}</td>
+          <td><span class="badge badge-primary">{{ u.get_role_display }}</span></td>
+          <td style="font-size:0.78rem;color:var(--gray-500);">{{ u.get_scope_label }}</td>
+          <td style="font-size:0.82rem;">{{ u.phone|default:"—" }}</td>
+          <td>
+            {% if u.is_active %}<span class="badge badge-success">Active</span>
+            {% else %}<span class="badge badge-secondary">Inactive</span>{% endif %}
+            {% if u.must_change_password %}<span class="badge badge-warning" style="margin-left:4px;">Pw Reset</span>{% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-2">
+              <a href="{% url 'user_edit' u.pk %}" class="btn btn-outline btn-xs"><i class="fa-solid fa-pen"></i></a>
+              <a href="{% url 'user_reset_password' u.pk %}" class="btn btn-warning btn-xs" data-confirm="Reset password for {{ u.get_full_name }}?" style="background:var(--warning-light);color:var(--warning);border-color:var(--warning);">
+                <i class="fa-solid fa-key"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon"><i class="fa-solid fa-users"></i></div>
+    <div class="empty-title">No users in your scope</div>
+    <div class="empty-sub"><a href="{% url 'user_create' %}">Create the first user</a></div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

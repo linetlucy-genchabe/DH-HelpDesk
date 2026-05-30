@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Audit Log{% endblock %}
+{% block topbar_title %}Audit Log{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Audit Log</div>
+    <div class="page-subtitle">Last 500 system actions — visible to superuser only</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>User</th>
+          <th>Action</th>
+          <th>Object</th>
+          <th>IP Address</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td style="font-size:0.78rem;white-space:nowrap;color:var(--gray-500);">{{ log.timestamp|date:"M d Y H:i:s" }}</td>
+          <td style="font-weight:600;font-size:0.82rem;">{{ log.user.get_full_name|default:log.user.username|default:"—" }}</td>
+          <td>
+            <span class="badge badge-{% if 'DELETE' in log.action %}danger{% elif 'CREATE' in log.action %}success{% elif 'LOGIN' in log.action %}primary{% elif 'UPLOAD' in log.action %}orange{% else %}secondary{% endif %}">
+              {{ log.action }}
+            </span>
+          </td>
+          <td style="font-size:0.8rem;">
+            {% if log.object_type %}{{ log.object_type }}{% if log.object_id %} #{{ log.object_id }}{% endif %}{% else %}—{% endif %}
+          </td>
+          <td class="font-mono" style="font-size:0.78rem;color:var(--gray-400);">{{ log.ip_address|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5"><div class="empty-state" style="padding:40px;"><div class="empty-title">No audit records yet</div></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
