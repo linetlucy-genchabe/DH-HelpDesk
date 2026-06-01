@@ -703,8 +703,8 @@ def download_chp_template(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="chp_credentials_template.csv"'
     w = csv.writer(response)
-    w.writerow(['county', 'subcounty', 'chu', 'chp_name', 'phone', 'echis_username', 'echis_password'])
-    w.writerow(['Kisumu', 'Kisumu West', 'Dago', 'Jane Anyango', '0700000001', 'janyango2023', 'Pass@123'])
+    w.writerow(['county', 'subcounty', 'chu', 'chp_name','echis_username', 'echis_password'])
+    w.writerow(['Kisumu', 'Kisumu West', 'Dago', 'Jane Anyango', 'janyango2023', 'Pass@123'])
     return response
 
 
@@ -871,11 +871,11 @@ def download_cha_template(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="cha_credentials_template.csv"'
     w = csv.writer(response)
-    w.writerow(['county', 'subcounty', 'cha_name', 'phone', 'chus',
+    w.writerow(['county', 'subcounty', 'cha_name', 'chus',
                 'echis_username', 'echis_password',
                 'dashboard_username', 'dashboard_password',
                 'registry_username', 'registry_password'])
-    w.writerow(['Kisumu', 'Kisumu West', 'Rose Achieng', '0700000001', 'Dago|Manyatta B',
+    w.writerow(['Kisumu', 'Kisumu West', 'Rose Achieng', 'Dago|Manyatta B',
                 'rachieng2023', 'Pass@123', 'rachieng_db', 'Pass@456', 'rachieng_reg', 'Pass@789'])
     return response
 
