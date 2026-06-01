@@ -18,52 +18,66 @@
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <div class="form-grid">
+
         <div class="form-group span-2">
           <label class="form-label req">Title</label>
-          <input type="text" name="title" class="form-control" value="{{ form.title.value|default:'' }}" placeholder="Brief summary of the issue" required>
-          {% if form.title.errors %}<span class="form-error">{{ form.title.errors|join:", " }}</span>{% endif %}
+          <input type="text" name="title" class="form-control" value="{{ obj.title|default:'' }}" placeholder="Brief summary of the issue" required>
         </div>
+
         <div class="form-group">
           <label class="form-label req">Category</label>
           <select name="category" class="form-control" required>
             <option value="">— Select category —</option>
-            {% for cat in form.fields.category.queryset %}
-            <option value="{{ cat.pk }}" {% if form.category.value|stringformat:"s" == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+            {% for cat in categories %}
+            <option value="{{ cat.pk }}" {% if obj and obj.category_id == cat.pk %}selected{% endif %}>{{ cat.name }}</option>
             {% endfor %}
           </select>
-          {% if form.category.errors %}<span class="form-error">{{ form.category.errors|join:", " }}</span>{% endif %}
         </div>
-        <div class="form-group">
-          <label class="form-label req">CHU</label>
-          <select name="chu" class="form-control" required>
-            <option value="">— Select CHU —</option>
-            {% for chu in form.fields.chu.queryset %}
-            <option value="{{ chu.pk }}" {% if form.chu.value|stringformat:"s" == chu.pk|stringformat:"s" %}selected{% endif %}>{{ chu.name }}</option>
-            {% endfor %}
-          </select>
-          {% if form.chu.errors %}<span class="form-error">{{ form.chu.errors|join:", " }}</span>{% endif %}
-        </div>
+
         <div class="form-group">
           <label class="form-label req">Priority</label>
           <select name="priority" class="form-control">
-            <option value="low" {% if form.priority.value == 'low' %}selected{% endif %}>Low</option>
-            <option value="medium" {% if form.priority.value == 'medium' or not form.priority.value %}selected{% endif %}>Medium</option>
-            <option value="high" {% if form.priority.value == 'high' %}selected{% endif %}>High</option>
-            <option value="critical" {% if form.priority.value == 'critical' %}selected{% endif %}>Critical</option>
+            {% for val, label in priorities %}
+            <option value="{{ val }}" {% if obj and obj.priority == val %}selected{% elif not obj and val == 'medium' %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
           </select>
         </div>
+
+        {% if show_subcounty %}
         <div class="form-group">
-          <label class="form-label">Attachment <span class="form-hint">(photo, CSV, Excel)</span></label>
+          <label class="form-label req">Sub-County</label>
+          <select name="subcounty_filter" id="subcountySelect" class="form-control">
+            <option value="">— Select sub-county —</option>
+            {% for sc in subcounties %}
+            <option value="{{ sc.pk }}" {% if selected_subcounty == sc.pk|stringformat:"s" %}selected{% endif %}>{{ sc.name }} ({{ sc.county.name }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+          <label class="form-label req">CHU</label>
+          <select name="chu" id="chuSelect" class="form-control" required>
+            <option value="">{% if show_subcounty %}— Select sub-county first —{% else %}— Select CHU —{% endif %}</option>
+            {% for chu in chus %}
+            <option value="{{ chu.pk }}" {% if obj and obj.chu_id == chu.pk %}selected{% endif %}>{{ chu.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Attachment <span class="form-hint">(photo, CSV, Excel, PDF)</span></label>
           <input type="file" name="attachment" class="form-control" accept="image/*,.csv,.xlsx,.xls,.pdf">
           {% if obj and obj.attachment %}
           <span class="form-hint">Current: <a href="{{ obj.attachment.url }}" target="_blank">{{ obj.attachment.name }}</a></span>
           {% endif %}
         </div>
+
         <div class="form-group span-2">
           <label class="form-label req">Description</label>
-          <textarea name="description" class="form-control" rows="5" placeholder="Describe the issue in detail — what happened, when, which device or system..." required>{{ form.description.value|default:'' }}</textarea>
-          {% if form.description.errors %}<span class="form-error">{{ form.description.errors|join:", " }}</span>{% endif %}
+          <textarea name="description" class="form-control" rows="5" placeholder="Describe the issue — what happened, when, which device or system..." required>{{ obj.description|default:'' }}</textarea>
         </div>
+
       </div>
       <hr class="divider">
       <div class="d-flex gap-3">
@@ -73,4 +87,28 @@
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+{% if show_subcounty %}
+document.getElementById('subcountySelect').addEventListener('change', function() {
+  const scId = this.value;
+  const chuSelect = document.getElementById('chuSelect');
+  chuSelect.innerHTML = '<option value="">— Loading... —</option>';
+  if (!scId) {
+    chuSelect.innerHTML = '<option value="">— Select sub-county first —</option>';
+    return;
+  }
+  fetch(`/ajax/chus-by-subcounty/?subcounty_id=${scId}`)
+    .then(r => r.json())
+    .then(data => {
+      chuSelect.innerHTML = '<option value="">— Select CHU —</option>';
+      data.forEach(chu => {
+        chuSelect.innerHTML += `<option value="${chu.id}">${chu.name}</option>`;
+      });
+    });
+});
+{% endif %}
+</script>
 {% endblock %}

@@ -964,6 +964,19 @@ def incident_list(request):
 
 @login_required
 def incident_create(request):
+    scope_chus = request.user.get_scope_chus()
+    role = request.user.role
+    show_subcounty = role in ('superuser', 'tech_team', 'country', 'county')
+    if role in ('superuser', 'tech_team'):
+        subcounties = SubCounty.objects.all().select_related('county')
+    elif role == 'country':
+        subcounties = SubCounty.objects.filter(county__country=request.user.country).select_related('county')
+    elif role == 'county':
+        subcounties = SubCounty.objects.filter(county=request.user.county).select_related('county')
+    else:
+        subcounties = SubCounty.objects.none()
+    chus = CHU.objects.none() if show_subcounty else scope_chus
+
     if request.method == 'POST':
         chu = get_object_or_404(CHU, pk=request.POST.get('chu'))
         inc = Incident(
@@ -976,15 +989,17 @@ def incident_create(request):
         if request.FILES.get('attachment'): inc.attachment = request.FILES['attachment']
         inc.save()
         log_action(request, 'CREATE', 'Incident', inc.pk)
-        if inc.assigned_to:
-            notify(inc.assigned_to, f"Incident {inc.incident_number} assigned to you", 'incident', inc.pk)
         messages.success(request, f"Incident {inc.incident_number} raised.")
         return redirect('incident_detail', pk=inc.pk)
-    return render(request, 'incidents/incident_form.html', {
-        'title': 'Raise Incident', 'chus': request.user.get_scope_chus(),
-        'categories': IncidentCategory.objects.filter(is_active=True), 'priorities': Incident.PRIORITY,
-    })
 
+    return render(request, 'incidents/incident_form.html', {
+        'title': 'Raise Incident',
+        'chus': chus, 'subcounties': subcounties,
+        'show_subcounty': show_subcounty,
+        'selected_subcounty': '',
+        'categories': IncidentCategory.objects.filter(is_active=True),
+        'priorities': Incident.PRIORITY,
+    })
 
 @login_required
 def incident_detail(request, pk):
@@ -1045,9 +1060,26 @@ def incident_edit(request, pk):
         log_action(request, 'UPDATE', 'Incident', inc.pk)
         messages.success(request, "Incident updated.")
         return redirect('incident_detail', pk=pk)
+
+    role = request.user.role
+    show_subcounty = role in ('superuser', 'tech_team', 'country', 'county')
+    if role in ('superuser', 'tech_team'):
+        subcounties = SubCounty.objects.all().select_related('county')
+    elif role == 'country':
+        subcounties = SubCounty.objects.filter(county__country=request.user.country).select_related('county')
+    elif role == 'county':
+        subcounties = SubCounty.objects.filter(county=request.user.county).select_related('county')
+    else:
+        subcounties = SubCounty.objects.none()
+
     return render(request, 'incidents/incident_form.html', {
-        'title': 'Edit Incident', 'obj': inc, 'chus': request.user.get_scope_chus(),
-        'categories': IncidentCategory.objects.filter(is_active=True), 'priorities': Incident.PRIORITY,
+        'title': 'Edit Incident', 'obj': inc,
+        'chus': request.user.get_scope_chus() if not show_subcounty else CHU.objects.filter(pk=inc.chu_id),
+        'subcounties': subcounties,
+        'show_subcounty': show_subcounty,
+        'selected_subcounty': str(inc.chu.ward.subcounty_id) if inc.chu else '',
+        'categories': IncidentCategory.objects.filter(is_active=True),
+        'priorities': Incident.PRIORITY,
     })
 
 
@@ -1181,6 +1213,15 @@ def ajax_wards(request):
 def ajax_chus(request):
     ward_id = request.GET.get('ward_id')
     qs = CHU.objects.filter(ward_id=ward_id) if ward_id else CHU.objects.all()
+    return JsonResponse(list(qs.values('id', 'name')), safe=False)
+
+@login_required
+def ajax_chus_by_subcounty(request):
+    subcounty_id = request.GET.get('subcounty_id')
+    if not subcounty_id:
+        return JsonResponse([], safe=False)
+    scope_chus = request.user.get_scope_chus()
+    qs = scope_chus.filter(ward__subcounty_id=subcounty_id).order_by('name')
     return JsonResponse(list(qs.values('id', 'name')), safe=False)
 
 # ══════════════════════════════════════════════════════════════════════════════
