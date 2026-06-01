@@ -371,7 +371,20 @@ def device_list(request):
     counts = {}
     devices = []
     scope_chus = request.user.get_scope_chus()
-    all_devices = Device.objects.filter(chu__in=scope_chus)
+
+    # Summary reflects current drill level not full scope
+    if chu_filter:
+        summary_chus = CHU.objects.filter(pk=chu_filter)
+    elif request.GET.get('subcounty'):
+        summary_chus = CHU.objects.filter(ward__subcounty_id=request.GET.get('subcounty'))
+    elif request.GET.get('county'):
+        summary_chus = CHU.objects.filter(ward__subcounty__county_id=request.GET.get('county'))
+    elif request.GET.get('country'):
+        summary_chus = CHU.objects.filter(ward__subcounty__county__country_id=request.GET.get('country'))
+    else:
+        summary_chus = scope_chus
+
+    all_devices = Device.objects.filter(chu__in=summary_chus)
     summary = {s: all_devices.filter(status=s).count() for s in ['active', 'damaged', 'under_repair', 'lost']}
     summary['total'] = all_devices.count()
 
@@ -381,8 +394,7 @@ def device_list(request):
             Q(assigned_to_name__icontains=search) | Q(phone_model__icontains=search) |
             Q(imei__icontains=search) | Q(serial_number__icontains=search)
         )
-        base_qs = all_devices
-        if chu_filter: base_qs = base_qs.filter(chu_id=chu_filter)
+        base_qs = Device.objects.filter(chu__in=summary_chus)
         counts = {s: base_qs.filter(status=s).count() for s in ['active', 'damaged', 'under_repair', 'lost']}
         counts['total'] = base_qs.count()
         devices = device_qs.order_by('-created_at')
@@ -615,14 +627,29 @@ def chp_list(request):
     search = request.GET.get('q', '')
     profiles = []
     scope_chus = request.user.get_scope_chus()
-    all_chps = CHPProfile.objects.filter(chu__in=scope_chus)
+
+    # Summary should reflect current drill level, not full scope
+    if drill_level == 'chps' and chu_filter:
+        summary_chus = CHU.objects.filter(pk=chu_filter)
+    elif request.GET.get('subcounty'):
+        summary_chus = CHU.objects.filter(ward__subcounty_id=request.GET.get('subcounty'))
+    elif request.GET.get('county'):
+        summary_chus = CHU.objects.filter(ward__subcounty__county_id=request.GET.get('county'))
+    elif request.GET.get('country'):
+        summary_chus = CHU.objects.filter(ward__subcounty__county__country_id=request.GET.get('country'))
+    else:
+        summary_chus = scope_chus
+
+    all_chps = CHPProfile.objects.filter(chu__in=summary_chus)
     summary = {
         'total': all_chps.count(),
         'cred_count': all_chps.filter(echis_username__gt='').count(),
     }
+
     if drill_level == 'chps' and chp_qs is not None:
         if search: chp_qs = chp_qs.filter(name__icontains=search)
         profiles = chp_qs.select_related('chu__ward__subcounty')
+
     return render(request, 'credentials/chp_list.html', {
         'drill_level': drill_level, 'items': items, 'breadcrumb': breadcrumb,
         'profiles': profiles, 'summary': summary,
