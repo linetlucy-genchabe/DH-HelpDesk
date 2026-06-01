@@ -987,6 +987,7 @@ def incident_create(request):
             raised_by=request.user, status='open',
         )
         if request.FILES.get('attachment'): inc.attachment = request.FILES['attachment']
+        inc.assigned_to = request.user
         inc.save()
         log_action(request, 'CREATE', 'Incident', inc.pk)
         messages.success(request, f"Incident {inc.incident_number} raised.")
