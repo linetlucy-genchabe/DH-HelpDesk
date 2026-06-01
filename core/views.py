@@ -92,13 +92,27 @@ def dashboard(request):
 def user_list(request):
     if not request.user.can_manage_users:
         messages.error(request, "Access denied."); return redirect('dashboard')
-    qs = User.objects.exclude(role='superuser').select_related('county', 'subcounty', 'ward')
-    if request.user.role == 'county':
-        qs = qs.filter(county=request.user.county)
+    
+    qs = User.objects.exclude(role='superuser').select_related('county', 'subcounty', 'ward').prefetch_related('chus')
+
+    if request.user.role == 'superuser':
+        pass  # sees all including tech_team
+
+    elif request.user.role == 'tech_team':
+        qs = qs.exclude(role='tech_team')  # sees all except superuser and tech_team
+
+    elif request.user.role == 'country':
+        qs = qs.exclude(role__in=['tech_team', 'country']).filter(country=request.user.country)
+
+    elif request.user.role == 'county':
+        qs = qs.exclude(role__in=['tech_team', 'country', 'county']).filter(county=request.user.county)
+
     elif request.user.role == 'subcounty':
-        qs = qs.filter(subcounty=request.user.subcounty)
-    elif request.user.role not in ('superuser', 'tech_team', 'country'):
+        qs = qs.exclude(role__in=['tech_team', 'country', 'county', 'subcounty']).filter(subcounty=request.user.subcounty)
+
+    else:
         qs = User.objects.none()
+
     return render(request, 'accounts/user_list.html', {'users': qs})
 
 @login_required
@@ -135,13 +149,28 @@ def user_create(request):
             log_action(request, 'CREATE', 'User', u.pk)
             messages.success(request, f"User created — Username: {username} | Password: {plain_pw}")
             return redirect('user_list')
+
+    # Role choices trickle down — each level can only create roles below them
+    if request.user.role == 'superuser':
+        role_choices = [r for r in User.ROLE_CHOICES if r[0] != 'superuser']
+    elif request.user.role == 'tech_team':
+        role_choices = [r for r in User.ROLE_CHOICES if r[0] not in ('superuser', 'tech_team')]
+    elif request.user.role == 'country':
+        role_choices = [r for r in User.ROLE_CHOICES if r[0] not in ('superuser', 'tech_team', 'country')]
+    elif request.user.role == 'county':
+        role_choices = [r for r in User.ROLE_CHOICES if r[0] not in ('superuser', 'tech_team', 'country', 'county')]
+    elif request.user.role == 'subcounty':
+        role_choices = [r for r in User.ROLE_CHOICES if r[0] == 'cha']
+    else:
+        role_choices = []
+
     return render(request, 'accounts/user_form.html', {
         'title': 'Create User',
         'counties': County.objects.all(),
         'subcounties': SubCounty.objects.all(),
         'wards': Ward.objects.all(),
         'chus': request.user.get_scope_chus(),
-        'role_choices': [r for r in User.ROLE_CHOICES if r[0] != 'superuser'],
+        'role_choices': role_choices,
     })
 
 @login_required
