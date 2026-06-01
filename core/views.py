@@ -101,7 +101,6 @@ def user_list(request):
         qs = User.objects.none()
     return render(request, 'accounts/user_list.html', {'users': qs})
 
-
 @login_required
 def user_create(request):
     if not request.user.can_manage_users:
@@ -129,6 +128,7 @@ def user_create(request):
             ward_id = request.POST.get('ward') or None
             if ward_id: u.ward_id = ward_id
             u.set_password(plain_pw)
+            u.temp_password = plain_pw
             u.save()
             chu_ids = request.POST.getlist('chus')
             if chu_ids: u.chus.set(chu_ids)
@@ -143,7 +143,6 @@ def user_create(request):
         'chus': request.user.get_scope_chus(),
         'role_choices': [r for r in User.ROLE_CHOICES if r[0] != 'superuser'],
     })
-
 
 @login_required
 def user_edit(request, pk):
@@ -176,7 +175,6 @@ def user_edit(request, pk):
         'role_choices': [r for r in User.ROLE_CHOICES if r[0] != 'superuser'],
     })
 
-
 @login_required
 def user_reset_password(request, pk):
     if not request.user.can_manage_users:
@@ -185,11 +183,11 @@ def user_reset_password(request, pk):
     plain_pw = generate_password()
     u.set_password(plain_pw)
     u.must_change_password = False
+    u.temp_password = plain_pw
     u.save()
     log_action(request, 'PASSWORD_RESET', 'User', u.pk)
     messages.success(request, f"Password reset for {u.get_full_name()} — New password: {plain_pw}")
     return redirect('user_list')
-
 
 @login_required
 def bulk_upload_users(request):

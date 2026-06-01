@@ -1,8 +1,8 @@
 from .base import *
 import os, dj_database_url
 
-DEBUG = False
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') + ['.railway.app']
+DEBUG = True
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',') + ['.railway.app']
 
 # Railway provides DATABASE_URL automatically when Postgres is linked
 DATABASES = {
