@@ -5,3 +5,4 @@ gunicorn>=21.2
 Pillow>=10.0
 openpyxl>=3.1
 django-jazzmin>=3.0
+dj-database-url>=2.0
