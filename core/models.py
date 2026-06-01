@@ -57,6 +57,8 @@ class User(AbstractUser):
     ward = models.ForeignKey(Ward, null=True, blank=True, on_delete=models.SET_NULL, related_name='users')
     chus = models.ManyToManyField(CHU, blank=True, related_name='users')
     must_change_password = models.BooleanField(default=False)
+    
+
 
     def __str__(self): return f"{self.get_full_name() or self.username} ({self.get_role_display()})"
 
