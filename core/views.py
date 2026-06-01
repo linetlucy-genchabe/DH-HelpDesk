@@ -1210,9 +1210,9 @@ def download_geography_template(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="geography_template.csv"'
     w = csv.writer(response)
-    w.writerow(['county', 'subcounty', 'ward', 'chu_name', 'chu_code'])
-    w.writerow(['Kisumu', 'Kisumu West', 'Manyatta B', 'Manyatta B CHU', 'CHU001'])
-    w.writerow(['Kisumu', 'Kisumu West', 'Manyatta B', 'Kolwa CHU', 'CHU002'])
-    w.writerow(['Kisumu', 'Seme', 'West Seme', 'West Seme CHU A', 'CHU003'])
-    w.writerow(['Busia', 'Butula', 'Butula', 'Butula CHU', 'CHU101'])
+    w.writerow(['county', 'subcounty', 'ward', 'chu_name'])
+    w.writerow(['Kisumu', 'Kisumu West', 'Manyatta B', 'Manyatta B CHU'])
+    w.writerow(['Kisumu', 'Kisumu West', 'Manyatta B', 'Kolwa CHU'])
+    w.writerow(['Kisumu', 'Seme', 'West Seme', 'West Seme CHU A'])
+    w.writerow(['Busia', 'Butula', 'Butula', 'Butula CHU'])
     return response
