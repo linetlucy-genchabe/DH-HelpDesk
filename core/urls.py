@@ -66,6 +66,7 @@ urlpatterns = [
     path('ajax/wards/', views.ajax_wards, name='ajax_wards'),
     path('ajax/chus/', views.ajax_chus, name='ajax_chus'),
 
+    #admin tools
     path('admin-tools/upload-geography/', views.upload_geography, name='upload_geography'),
     path('admin-tools/download-geography-template/', views.download_geography_template, name='geography_template'),
 ]

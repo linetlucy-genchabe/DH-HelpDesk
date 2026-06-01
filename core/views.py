@@ -141,7 +141,7 @@ def user_create(request):
         'subcounties': SubCounty.objects.all(),
         'wards': Ward.objects.all(),
         'chus': request.user.get_scope_chus(),
-        'role_choices': User.ROLE_CHOICES,
+        'role_choices': [r for r in User.ROLE_CHOICES if r[0] != 'superuser'],
     })
 
 
@@ -173,7 +173,7 @@ def user_edit(request, pk):
         'subcounties': SubCounty.objects.all(),
         'wards': Ward.objects.all(),
         'chus': request.user.get_scope_chus(),
-        'role_choices': User.ROLE_CHOICES,
+        'role_choices': [r for r in User.ROLE_CHOICES if r[0] != 'superuser'],
     })
 
 

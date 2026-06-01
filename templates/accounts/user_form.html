@@ -20,25 +20,25 @@
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label req">First Name</label>
-          <input type="text" name="first_name" class="form-control" value="{{ form.first_name.value|default:'' }}" required>
+          <input type="text" name="first_name" class="form-control" value="{{ obj.first_name|default:'' }}" required>
         </div>
         <div class="form-group">
           <label class="form-label req">Last Name</label>
-          <input type="text" name="last_name" class="form-control" value="{{ form.last_name.value|default:'' }}" required>
+          <input type="text" name="last_name" class="form-control" value="{{ obj.last_name|default:'' }}" required>
         </div>
         <div class="form-group">
           <label class="form-label">Email</label>
-          <input type="email" name="email" class="form-control" value="{{ form.email.value|default:'' }}">
+          <input type="email" name="email" class="form-control" value="{{ obj.email|default:'' }}">
         </div>
         <div class="form-group">
           <label class="form-label">Phone</label>
-          <input type="text" name="phone" class="form-control" value="{{ form.phone.value|default:'' }}" placeholder="07XXXXXXXX">
+          <input type="text" name="phone" class="form-control" value="{{ obj.phone|default:'' }}" placeholder="07XXXXXXXX">
         </div>
         <div class="form-group">
           <label class="form-label req">Role</label>
-          <select name="role" class="form-control" id="roleSelect" required>
-            {% for val, label in form.fields.role.choices %}
-            <option value="{{ val }}" {% if form.role.value == val %}selected{% endif %}>{{ label }}</option>
+          <select name="role" class="form-control" required>
+            {% for val, label in role_choices %}
+            <option value="{{ val }}" {% if obj and obj.role == val %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
         </div>
@@ -46,8 +46,8 @@
           <label class="form-label">County</label>
           <select name="county" class="form-control">
             <option value="">— None —</option>
-            {% for c in form.fields.county.queryset %}
-            <option value="{{ c.pk }}" {% if form.county.value|stringformat:"s" == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+            {% for c in counties %}
+            <option value="{{ c.pk }}" {% if obj and obj.county_id == c.pk %}selected{% endif %}>{{ c.name }}</option>
             {% endfor %}
           </select>
         </div>
@@ -55,8 +55,8 @@
           <label class="form-label">Sub-County</label>
           <select name="subcounty" class="form-control">
             <option value="">— None —</option>
-            {% for sc in form.fields.subcounty.queryset %}
-            <option value="{{ sc.pk }}" {% if form.subcounty.value|stringformat:"s" == sc.pk|stringformat:"s" %}selected{% endif %}>{{ sc.name }}</option>
+            {% for sc in subcounties %}
+            <option value="{{ sc.pk }}" {% if obj and obj.subcounty_id == sc.pk %}selected{% endif %}>{{ sc.name }}</option>
             {% endfor %}
           </select>
         </div>
@@ -64,22 +64,22 @@
           <label class="form-label">Ward</label>
           <select name="ward" class="form-control">
             <option value="">— None —</option>
-            {% for w in form.fields.ward.queryset %}
-            <option value="{{ w.pk }}" {% if form.ward.value|stringformat:"s" == w.pk|stringformat:"s" %}selected{% endif %}>{{ w.name }}</option>
+            {% for w in wards %}
+            <option value="{{ w.pk }}" {% if obj and obj.ward_id == w.pk %}selected{% endif %}>{{ w.name }}</option>
             {% endfor %}
           </select>
         </div>
         <div class="form-group span-2">
           <label class="form-label">Assigned CHUs <span class="form-hint">(hold Ctrl/Cmd to select multiple)</span></label>
           <select name="chus" class="form-control" multiple style="min-height:120px;">
-            {% for chu in form.fields.chus.queryset %}
-            <option value="{{ chu.pk }}" {% if chu.pk in form.chus.value %}selected{% endif %}>{{ chu.name }} ({{ chu.ward.subcounty.name }})</option>
+            {% for chu in chus %}
+            <option value="{{ chu.pk }}" {% if obj and chu in obj.chus.all %}selected{% endif %}>{{ chu.name }} ({{ chu.ward.subcounty.name }})</option>
             {% endfor %}
           </select>
         </div>
         <div class="form-group">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-            <input type="checkbox" name="is_active" {% if form.is_active.value != False %}checked{% endif %}> Active account
+            <input type="checkbox" name="is_active" {% if not obj or obj.is_active %}checked{% endif %}> Active account
           </label>
         </div>
       </div>
@@ -87,7 +87,7 @@
       {% if not obj %}
       <div class="alert alert-info" style="margin-bottom:16px;">
         <i class="fa-solid fa-circle-info"></i>
-        Username and a random password will be auto-generated. The credentials will be displayed after saving — copy them before navigating away.
+        Username and a random password will be auto-generated. Copy the credentials shown after saving.
       </div>
       {% endif %}
       <div class="d-flex gap-3">
