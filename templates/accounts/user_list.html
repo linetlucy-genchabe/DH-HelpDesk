@@ -32,7 +32,7 @@
           <th>Username</th>
           <th>Role</th>
           <th>Scope</th>
-          <th>Phone</th>
+          <th>Password</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
@@ -44,7 +44,11 @@
           <td class="font-mono" style="font-size:0.82rem;">{{ u.username }}</td>
           <td><span class="badge badge-primary">{{ u.get_role_display }}</span></td>
           <td style="font-size:0.78rem;color:var(--gray-500);">{{ u.get_scope_label }}</td>
-          <td style="font-size:0.82rem;">{{ u.phone|default:"—" }}</td>
+          <td>
+           <a href="{% url 'user_reset_password' u.pk %}" class="btn btn-outline btn-xs" data-confirm="Reset password for {{ u.get_full_name }}?">
+             <i class="fa-solid fa-key"></i> Reset
+          </a>
+          </td>
           <td>
             {% if u.is_active %}<span class="badge badge-success">Active</span>
             {% else %}<span class="badge badge-secondary">Inactive</span>{% endif %}
@@ -53,9 +57,9 @@
           <td>
             <div class="d-flex gap-2">
               <a href="{% url 'user_edit' u.pk %}" class="btn btn-outline btn-xs"><i class="fa-solid fa-pen"></i></a>
-              <a href="{% url 'user_reset_password' u.pk %}" class="btn btn-warning btn-xs" data-confirm="Reset password for {{ u.get_full_name }}?" style="background:var(--warning-light);color:var(--warning);border-color:var(--warning);">
+              <!-- <a href="{% url 'user_reset_password' u.pk %}" class="btn btn-warning btn-xs" data-confirm="Reset password for {{ u.get_full_name }}?" style="background:var(--warning-light);color:var(--warning);border-color:var(--warning);">
                 <i class="fa-solid fa-key"></i>
-              </a>
+              </a> -->
             </div>
           </td>
         </tr>
