@@ -99,6 +99,9 @@
       <a href="{% url 'audit_log' %}" class="nav-item {% if request.resolver_match.url_name == 'audit_log' %}active{% endif %}">
         <span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> Audit Log
       </a>
+      <a href="{% url 'upload_geography' %}" class="nav-item {% if request.resolver_match.url_name == 'upload_geography' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-map-location-dot"></i></span> Geography Upload
+      </a>
       {% endif %}
       {% endif %}
     </nav>

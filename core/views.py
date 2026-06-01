@@ -1128,3 +1128,91 @@ def ajax_chus(request):
     ward_id = request.GET.get('ward_id')
     qs = CHU.objects.filter(ward_id=ward_id) if ward_id else CHU.objects.all()
     return JsonResponse(list(qs.values('id', 'name')), safe=False)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADMIN TOOLS — GEOGRAPHY UPLOAD
+# ══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+def upload_geography(request):
+    if not request.user.is_superuser_or_tech:
+        messages.error(request, "Access denied."); return redirect('dashboard')
+
+    results = None
+    if request.method == 'POST':
+        f = request.FILES.get('csv_file')
+        if not f:
+            messages.error(request, "No file uploaded.")
+            return render(request, 'admin_tools/upload_geography.html')
+
+        reader = csv.DictReader(io.StringIO(f.read().decode('utf-8')))
+        created = {'county': 0, 'subcounty': 0, 'ward': 0, 'chu': 0}
+        updated = {'county': 0, 'subcounty': 0, 'ward': 0, 'chu': 0}
+        errors = []
+
+        country, _ = Country.objects.get_or_create(name='Kenya', defaults={'code': 'KE'})
+
+        for i, row in enumerate(reader, 2):
+            try:
+                county_name = row.get('county', '').strip()
+                subcounty_name = row.get('subcounty', '').strip()
+                ward_name = row.get('ward', '').strip()
+                chu_name = row.get('chu_name', '').strip()
+                chu_code = row.get('chu_code', '').strip()
+
+                if not all([county_name, subcounty_name, ward_name, chu_name]):
+                    errors.append(f"Row {i}: Missing required fields (county, subcounty, ward, chu_name)")
+                    continue
+
+                county, c = County.objects.get_or_create(
+                    name__iexact=county_name, country=country,
+                    defaults={'name': county_name}
+                )
+                if c: created['county'] += 1
+
+                subcounty, c = SubCounty.objects.get_or_create(
+                    name__iexact=subcounty_name, county=county,
+                    defaults={'name': subcounty_name}
+                )
+                if c: created['subcounty'] += 1
+
+                ward, c = Ward.objects.get_or_create(
+                    name__iexact=ward_name, subcounty=subcounty,
+                    defaults={'name': ward_name}
+                )
+                if c: created['ward'] += 1
+
+                chu, c = CHU.objects.get_or_create(
+                    name__iexact=chu_name, ward=ward,
+                    defaults={'name': chu_name, 'code': chu_code}
+                )
+                if c:
+                    created['chu'] += 1
+                else:
+                    if chu_code and not chu.code:
+                        chu.code = chu_code
+                        chu.save()
+                    updated['chu'] += 1
+
+            except Exception as e:
+                errors.append(f"Row {i}: {e}")
+
+        log_action(request, 'BULK_UPLOAD', 'Geography')
+        results = {'created': created, 'updated': updated, 'errors': errors}
+
+    return render(request, 'admin_tools/upload_geography.html', {'results': results})
+
+
+@login_required
+def download_geography_template(request):
+    if not request.user.is_superuser_or_tech:
+        messages.error(request, "Access denied."); return redirect('dashboard')
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="geography_template.csv"'
+    w = csv.writer(response)
+    w.writerow(['county', 'subcounty', 'ward', 'chu_name', 'chu_code'])
+    w.writerow(['Kisumu', 'Kisumu West', 'Manyatta B', 'Manyatta B CHU', 'CHU001'])
+    w.writerow(['Kisumu', 'Kisumu West', 'Manyatta B', 'Kolwa CHU', 'CHU002'])
+    w.writerow(['Kisumu', 'Seme', 'West Seme', 'West Seme CHU A', 'CHU003'])
+    w.writerow(['Busia', 'Butula', 'Butula', 'Butula CHU', 'CHU101'])
+    return response
