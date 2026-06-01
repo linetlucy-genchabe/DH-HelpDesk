@@ -3,3 +3,6 @@ builder = "nixpacks"
 
 [deploy]
 healthcheckPath = "/login/"
+
+[environment]
+DJANGO_SETTINGS_MODULE_ENV = "production"
