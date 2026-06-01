@@ -1035,10 +1035,10 @@ def incident_detail(request, pk):
                     notify(assignee, f"{inc.incident_number} assigned to you", 'incident', inc.pk)
                     messages.success(request, f"Assigned to {assignee.get_full_name()}.")
         return redirect('incident_detail', pk=pk)
-    scope_chus = request.user.get_scope_chus()
+
     assignable = User.objects.filter(
-        Q(chus__in=scope_chus) | Q(subcounty__wards__chus__in=scope_chus) | Q(county__subcounties__wards__chus__in=scope_chus)
-    ).distinct()
+        role__in=['superuser', 'tech_team', 'country', 'county', 'subcounty']
+    ).order_by('first_name')
     return render(request, 'incidents/incident_detail.html', {
         'incident': inc, 'assignable_users': assignable, 'status_choices': Incident.STATUS,
     })
