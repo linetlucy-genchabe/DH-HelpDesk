@@ -31,6 +31,13 @@ def generate_username(first_name, last_name):
     return username
 
 
-def generate_password(length=10):
-    chars = string.ascii_letters + string.digits + '!@#$'
-    return ''.join(random.choices(chars, k=length))
+def generate_password(length=8):
+    import random, string
+    lower = random.choice(string.ascii_lowercase)
+    upper = random.choice(string.ascii_uppercase)
+    digit = random.choice(string.digits)
+    special = random.choice('#$%@&*')
+    remaining = [random.choice(string.ascii_letters + string.digits + '#$%@&*') for _ in range(length - 4)]
+    pwd = list(lower + upper + digit + special) + remaining
+    random.shuffle(pwd)
+    return ''.join(pwd)

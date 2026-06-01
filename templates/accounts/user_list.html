@@ -33,38 +33,45 @@
           <th>Role</th>
           <th>Scope</th>
           <th>Password</th>
+          <th>Reset</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        {% for u in users %}
-        <tr>
-          <td style="font-weight:600;">{{ u.get_full_name|default:u.username }}</td>
-          <td class="font-mono" style="font-size:0.82rem;">{{ u.username }}</td>
-          <td><span class="badge badge-primary">{{ u.get_role_display }}</span></td>
-          <td style="font-size:0.78rem;color:var(--gray-500);">{{ u.get_scope_label }}</td>
-          <td>
-           <a href="{% url 'user_reset_password' u.pk %}" class="btn btn-outline btn-xs" data-confirm="Reset password for {{ u.get_full_name }}?">
-             <i class="fa-solid fa-key"></i> Reset
-          </a>
-          </td>
-          <td>
-            {% if u.is_active %}<span class="badge badge-success">Active</span>
-            {% else %}<span class="badge badge-secondary">Inactive</span>{% endif %}
-            {% if u.must_change_password %}<span class="badge badge-warning" style="margin-left:4px;">Pw Reset</span>{% endif %}
-          </td>
-          <td>
-            <div class="d-flex gap-2">
-              <a href="{% url 'user_edit' u.pk %}" class="btn btn-outline btn-xs"><i class="fa-solid fa-pen"></i></a>
-              <!-- <a href="{% url 'user_reset_password' u.pk %}" class="btn btn-warning btn-xs" data-confirm="Reset password for {{ u.get_full_name }}?" style="background:var(--warning-light);color:var(--warning);border-color:var(--warning);">
-                <i class="fa-solid fa-key"></i>
-              </a> -->
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
+  {% for u in users %}
+  <tr>
+    <td style="font-weight:600;">{{ u.get_full_name|default:u.username }}</td>
+    <td class="font-mono" style="font-size:0.82rem;">{{ u.username }}</td>
+    <td><span class="badge badge-primary">{{ u.get_role_display }}</span></td>
+    <td style="font-size:0.78rem;color:var(--gray-500);">{{ u.get_scope_label }}</td>
+    <td>
+      {% if u.temp_password %}
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="font-mono" id="pw-{{ u.pk }}" style="font-size:0.82rem;letter-spacing:1px;">••••••••</span>
+        <button type="button" class="btn btn-ghost btn-xs" onclick="togglePw({{ u.pk }},'{{ u.temp_password }}')">
+          <i class="fa-solid fa-eye" id="eye-{{ u.pk }}"></i>
+        </button>
+      </div>
+      {% else %}
+      <span style="color:var(--gray-400);font-size:0.75rem;">Changed by user</span>
+      {% endif %}
+    </td>
+    <td>
+      <a href="{% url 'user_reset_password' u.pk %}" class="btn btn-outline btn-xs" data-confirm="Reset password for {{ u.get_full_name }}?">
+        <i class="fa-solid fa-key"></i> Reset
+      </a>
+    </td>
+    <td>
+      {% if u.is_active %}<span class="badge badge-success">Active</span>
+      {% else %}<span class="badge badge-secondary">Inactive</span>{% endif %}
+    </td>
+    <td>
+      <a href="{% url 'user_edit' u.pk %}" class="btn btn-outline btn-xs"><i class="fa-solid fa-pen"></i></a>
+    </td>
+  </tr>
+  {% endfor %}
+</tbody>
     </table>
   </div>
   {% else %}
@@ -75,4 +82,20 @@
   </div>
   {% endif %}
 </div>
+
+{% block extra_js %}
+<script>
+function togglePw(id, pw) {
+  const el = document.getElementById('pw-' + id);
+  const eye = document.getElementById('eye-' + id);
+  if (el.textContent === '••••••••') {
+    el.textContent = pw;
+    eye.className = 'fa-solid fa-eye-slash';
+  } else {
+    el.textContent = '••••••••';
+    eye.className = 'fa-solid fa-eye';
+  }
+}
+</script>
+
 {% endblock %}
