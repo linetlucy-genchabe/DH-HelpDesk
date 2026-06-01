@@ -232,11 +232,11 @@ class Incident(models.Model):
 
     @property
     def status_color(self):
-        return {'open': 'danger', 'in_progress': 'warning', 'escalated': 'orange', 'resolved': 'success', 'closed': 'secondary'}[self.status]
+        return {'open': 'danger', 'in_progress': 'warning', 'escalated': 'orange', 'resolved': 'success', 'closed': 'secondary'}.get(self.status.lower(), 'secondary')
 
     @property
     def priority_color(self):
-        return {'low': 'success', 'medium': 'info', 'high': 'warning', 'critical': 'danger'}[self.priority]
+        return {'low': 'success', 'medium': 'info', 'high': 'warning', 'critical': 'danger'}.get(self.priority.lower(), 'secondary')
 
 class IncidentUpdate(models.Model):
     incident = models.ForeignKey(Incident, on_delete=models.CASCADE, related_name='updates')
