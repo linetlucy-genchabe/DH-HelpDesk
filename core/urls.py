@@ -70,4 +70,9 @@ urlpatterns = [
     #admin tools
     path('admin-tools/upload-geography/', views.upload_geography, name='upload_geography'),
     path('admin-tools/download-geography-template/', views.download_geography_template, name='geography_template'),
+
+    path('assets/export/', views.export_devices, name='export_devices'),
+    path('credentials/chp/export/', views.export_chps, name='export_chps'),
+    path('credentials/cha/export/', views.export_chas, name='export_chas'),
+    path('incidents/export/', views.export_incidents, name='export_incidents'),
 ]

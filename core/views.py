@@ -1388,3 +1388,122 @@ def download_geography_template(request):
     w.writerow(['Kisumu', 'Seme', 'West Seme', 'West Seme CHU A'])
     w.writerow(['Busia', 'Butula', 'Butula', 'Butula CHU'])
     return response
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CSV EXPORTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+def export_devices(request):
+    scope_chus = request.user.get_scope_chus()
+    devices = Device.objects.filter(chu__in=scope_chus).select_related(
+        'chu__ward__subcounty__county'
+    ).order_by('chu__ward__subcounty__county__name', 'chu__name', 'assigned_to_name')
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="devices_export.csv"'
+    w = csv.writer(response)
+    w.writerow(['county', 'subcounty', 'ward', 'chu', 'assigned_to_name', 'assigned_to_role',
+                'device_type', 'phone_model', 'serial_number', 'imei', 'status',
+                'incident_date', 'reporting_status', 'date_assigned', 'notes'])
+    for d in devices:
+        w.writerow([
+            d.chu.ward.subcounty.county.name,
+            d.chu.ward.subcounty.name,
+            d.chu.ward.name,
+            d.chu.name,
+            d.assigned_to_name,
+            d.get_assigned_to_role_display(),
+            d.get_device_type_display(),
+            d.phone_model,
+            d.serial_number,
+            d.imei,
+            d.get_status_display(),
+            d.incident_date or '',
+            d.get_reporting_status_display(),
+            d.date_assigned or '',
+            d.notes,
+        ])
+    return response
+
+
+@login_required
+def export_chps(request):
+    scope_chus = request.user.get_scope_chus()
+    chps = CHPProfile.objects.filter(chu__in=scope_chus).select_related(
+        'chu__ward__subcounty__county'
+    ).order_by('chu__ward__subcounty__county__name', 'chu__name', 'name')
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="chp_credentials_export.csv"'
+    w = csv.writer(response)
+    w.writerow(['county', 'subcounty', 'ward', 'chu', 'chp_name',
+                'echis_username', 'echis_password', 'is_active'])
+    for chp in chps:
+        w.writerow([
+            chp.chu.ward.subcounty.county.name,
+            chp.chu.ward.subcounty.name,
+            chp.chu.ward.name,
+            chp.chu.name,
+            chp.name,
+            chp.echis_username,
+            chp.echis_password,
+            'Yes' if chp.is_active else 'No',
+        ])
+    return response
+
+
+@login_required
+def export_chas(request):
+    scope_chus = request.user.get_scope_chus()
+    subcounties = SubCounty.objects.filter(wards__chus__in=scope_chus).distinct()
+    chas = CHAProfile.objects.filter(subcounty__in=subcounties).select_related(
+        'subcounty__county'
+    ).prefetch_related('chus').order_by('subcounty__county__name', 'subcounty__name', 'name')
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="cha_credentials_export.csv"'
+    w = csv.writer(response)
+    w.writerow(['county', 'subcounty', 'cha_name', 'assigned_chus',
+                'echis_username', 'echis_password',
+                'dashboard_username', 'dashboard_password',
+                'registry_username', 'registry_password', 'is_active'])
+    for cha in chas:
+        w.writerow([
+            cha.subcounty.county.name,
+            cha.subcounty.name,
+            cha.name,
+            cha.chu_list,
+            cha.echis_username,
+            cha.echis_password,
+            cha.dashboard_username,
+            cha.dashboard_password,
+            cha.registry_username,
+            cha.registry_password,
+            'Yes' if cha.is_active else 'No',
+        ])
+    return response
+
+
+@login_required
+def export_incidents(request):
+    incidents = _inc_scope(request.user).order_by('-created_at')
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="incidents_export.csv"'
+    w = csv.writer(response)
+    w.writerow(['incident_number', 'title', 'category', 'chu', 'ward', 'subcounty', 'county',
+                'priority', 'status', 'raised_by', 'assigned_to', 'created_at', 'description'])
+    for inc in incidents:
+        w.writerow([
+            inc.incident_number,
+            inc.title,
+            inc.category.name if inc.category else '',
+            inc.chu.name if inc.chu else '',
+            inc.chu.ward.name if inc.chu else '',
+            inc.chu.ward.subcounty.name if inc.chu else '',
+            inc.chu.ward.subcounty.county.name if inc.chu else '',
+            inc.get_priority_display(),
+            inc.get_status_display(),
+            inc.raised_by.get_full_name() if inc.raised_by else '',
+            inc.assigned_to.get_full_name() if inc.assigned_to else '',
+            inc.created_at.strftime('%Y-%m-%d %H:%M'),
+            inc.description,
+        ])
+    return response
