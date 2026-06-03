@@ -43,13 +43,25 @@
           </select>
         </div>
 
-        {% if show_subcounty %}
+        {% if show_county %}
+        <div class="form-group">
+          <label class="form-label req">County</label>
+          <select name="county_filter" id="countySelect" class="form-control">
+            <option value="">— Select county —</option>
+            {% for c in counties %}
+            <option value="{{ c.pk }}">{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+
+        {% if show_subcounty or not show_county and not show_chu_direct %}
         <div class="form-group">
           <label class="form-label req">Sub-County</label>
           <select name="subcounty_filter" id="subcountySelect" class="form-control">
-            <option value="">— Select sub-county —</option>
+            <option value="">— {% if show_county %}Select county first{% else %}Select sub-county{% endif %} —</option>
             {% for sc in subcounties %}
-            <option value="{{ sc.pk }}" {% if selected_subcounty == sc.pk|stringformat:"s" %}selected{% endif %}>{{ sc.name }} ({{ sc.county.name }})</option>
+            <option value="{{ sc.pk }}" {% if selected_subcounty == sc.pk|stringformat:"s" %}selected{% endif %}>{{ sc.name }}</option>
             {% endfor %}
           </select>
         </div>
@@ -58,7 +70,7 @@
         <div class="form-group">
           <label class="form-label req">CHU</label>
           <select name="chu" id="chuSelect" class="form-control" required>
-            <option value="">{% if show_subcounty %}— Select sub-county first —{% else %}— Select CHU —{% endif %}</option>
+            <option value="">— Select CHU —</option>
             {% for chu in chus %}
             <option value="{{ chu.pk }}" {% if obj and obj.chu_id == chu.pk %}selected{% endif %}>{{ chu.name }}</option>
             {% endfor %}
@@ -91,24 +103,45 @@
 
 {% block extra_js %}
 <script>
-{% if show_subcounty %}
-document.getElementById('subcountySelect').addEventListener('change', function() {
-  const scId = this.value;
+{% if show_county %}
+document.getElementById('countySelect').addEventListener('change', function() {
+  const countyId = this.value;
+  const scSelect = document.getElementById('subcountySelect');
   const chuSelect = document.getElementById('chuSelect');
-  chuSelect.innerHTML = '<option value="">— Loading... —</option>';
-  if (!scId) {
-    chuSelect.innerHTML = '<option value="">— Select sub-county first —</option>';
+  scSelect.innerHTML = '<option value="">— Loading... —</option>';
+  chuSelect.innerHTML = '<option value="">— Select sub-county first —</option>';
+  if (!countyId) {
+    scSelect.innerHTML = '<option value="">— Select county first —</option>';
     return;
   }
-  fetch(`/ajax/chus-by-subcounty/?subcounty_id=${scId}`)
+  fetch(`/ajax/subcounties/?county_id=${countyId}`)
     .then(r => r.json())
     .then(data => {
-      chuSelect.innerHTML = '<option value="">— Select CHU —</option>';
-      data.forEach(chu => {
-        chuSelect.innerHTML += `<option value="${chu.id}">${chu.name}</option>`;
-      });
+      scSelect.innerHTML = '<option value="">— Select sub-county —</option>';
+      data.forEach(sc => { scSelect.innerHTML += `<option value="${sc.id}">${sc.name}</option>`; });
     });
 });
+{% endif %}
+
+{% if show_county or show_subcounty or not show_chu_direct %}
+const scSelectEl = document.getElementById('subcountySelect');
+if (scSelectEl) {
+  scSelectEl.addEventListener('change', function() {
+    const scId = this.value;
+    const chuSelect = document.getElementById('chuSelect');
+    chuSelect.innerHTML = '<option value="">— Loading... —</option>';
+    if (!scId) {
+      chuSelect.innerHTML = '<option value="">— Select sub-county first —</option>';
+      return;
+    }
+    fetch(`/ajax/chus-by-subcounty/?subcounty_id=${scId}`)
+      .then(r => r.json())
+      .then(data => {
+        chuSelect.innerHTML = '<option value="">— Select CHU —</option>';
+        data.forEach(chu => { chuSelect.innerHTML += `<option value="${chu.id}">${chu.name}</option>`; });
+      });
+  });
+}
 {% endif %}
 </script>
 {% endblock %}

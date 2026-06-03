@@ -967,16 +967,25 @@ def incident_list(request):
 def incident_create(request):
     scope_chus = request.user.get_scope_chus()
     role = request.user.role
-    show_subcounty = role in ('superuser', 'tech_team', 'country', 'county')
+
+    show_county = role in ('superuser', 'tech_team')
+    show_subcounty = role in ('superuser', 'tech_team', 'country')
+    show_chu_direct = role in ('subcounty', 'cha')
+
     if role in ('superuser', 'tech_team'):
-        subcounties = SubCounty.objects.all().select_related('county')
+        counties = County.objects.all().select_related('country')
+        subcounties = SubCounty.objects.none()
     elif role == 'country':
-        subcounties = SubCounty.objects.filter(county__country=request.user.country).select_related('county')
+        counties = County.objects.filter(country=request.user.country)
+        subcounties = SubCounty.objects.none()
     elif role == 'county':
+        counties = County.objects.filter(pk=request.user.county_id)
         subcounties = SubCounty.objects.filter(county=request.user.county).select_related('county')
     else:
+        counties = County.objects.none()
         subcounties = SubCounty.objects.none()
-    chus = CHU.objects.none() if show_subcounty else scope_chus
+
+    chus = scope_chus if show_chu_direct else CHU.objects.none()
 
     if request.method == 'POST':
         chu = get_object_or_404(CHU, pk=request.POST.get('chu'))
@@ -996,8 +1005,12 @@ def incident_create(request):
 
     return render(request, 'incidents/incident_form.html', {
         'title': 'Raise Incident',
-        'chus': chus, 'subcounties': subcounties,
+        'chus': chus,
+        'counties': counties,
+        'subcounties': subcounties,
+        'show_county': show_county,
         'show_subcounty': show_subcounty,
+        'show_chu_direct': show_chu_direct,
         'selected_subcounty': '',
         'categories': IncidentCategory.objects.filter(is_active=True),
         'priorities': Incident.PRIORITY,
@@ -1048,7 +1061,7 @@ def incident_detail(request, pk):
 @login_required
 def incident_edit(request, pk):
     inc = get_object_or_404(Incident, pk=pk)
-    if inc.chu not in request.user.get_scope_chus():
+    if not request.user.get_scope_chus().filter(pk=inc.chu_id).exists() and inc.assigned_to != request.user:
         messages.error(request, "Access denied."); return redirect('incident_list')
     if request.method == 'POST':
         inc.title = request.POST.get('title', inc.title)
@@ -1063,22 +1076,36 @@ def incident_edit(request, pk):
         messages.success(request, "Incident updated.")
         return redirect('incident_detail', pk=pk)
 
+    scope_chus = request.user.get_scope_chus()
     role = request.user.role
-    show_subcounty = role in ('superuser', 'tech_team', 'country', 'county')
+
+    show_county = role in ('superuser', 'tech_team')
+    show_subcounty = role in ('superuser', 'tech_team', 'country')
+    show_chu_direct = role in ('subcounty', 'cha')
+
     if role in ('superuser', 'tech_team'):
-        subcounties = SubCounty.objects.all().select_related('county')
+        counties = County.objects.all().select_related('country')
+        subcounties = SubCounty.objects.none()
     elif role == 'country':
-        subcounties = SubCounty.objects.filter(county__country=request.user.country).select_related('county')
+        counties = County.objects.filter(country=request.user.country)
+        subcounties = SubCounty.objects.none()
     elif role == 'county':
+        counties = County.objects.filter(pk=request.user.county_id)
         subcounties = SubCounty.objects.filter(county=request.user.county).select_related('county')
     else:
+        counties = County.objects.none()
         subcounties = SubCounty.objects.none()
+
+    chus = scope_chus if show_chu_direct else CHU.objects.filter(pk=inc.chu_id)
 
     return render(request, 'incidents/incident_form.html', {
         'title': 'Edit Incident', 'obj': inc,
-        'chus': request.user.get_scope_chus() if not show_subcounty else CHU.objects.filter(pk=inc.chu_id),
+        'chus': chus,
+        'counties': counties,
         'subcounties': subcounties,
+        'show_county': show_county,
         'show_subcounty': show_subcounty,
+        'show_chu_direct': show_chu_direct,
         'selected_subcounty': str(inc.chu.ward.subcounty_id) if inc.chu else '',
         'categories': IncidentCategory.objects.filter(is_active=True),
         'priorities': Incident.PRIORITY,
