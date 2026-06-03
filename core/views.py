@@ -1019,7 +1019,6 @@ def incident_create(request):
 @login_required
 def incident_detail(request, pk):
     inc = get_object_or_404(Incident, pk=pk)
-    # Allow access if within scope OR assigned to this user
     if not request.user.get_scope_chus().filter(pk=inc.chu_id).exists() and inc.assigned_to != request.user:
         messages.error(request, "Access denied."); return redirect('incident_list')
     if request.method == 'POST':
@@ -1029,6 +1028,10 @@ def incident_detail(request, pk):
             if comment:
                 IncidentUpdate.objects.create(incident=inc, author=request.user, comment=comment)
                 messages.success(request, "Comment added.")
+                if inc.raised_by and inc.raised_by != request.user:
+                    notify(inc.raised_by, f"{request.user.get_full_name()} commented on {inc.incident_number}", 'incident', inc.pk)
+                if inc.assigned_to and inc.assigned_to != request.user:
+                    notify(inc.assigned_to, f"{request.user.get_full_name()} commented on {inc.incident_number}", 'incident', inc.pk)
         elif action == 'update_status':
             new_status = request.POST.get('status')
             if new_status and new_status != inc.status:
@@ -1040,6 +1043,8 @@ def incident_detail(request, pk):
                 inc.status = new_status; inc.save()
                 if inc.raised_by and inc.raised_by != request.user:
                     notify(inc.raised_by, f"{inc.incident_number} status updated to {new_status}", 'incident', inc.pk)
+                if inc.assigned_to and inc.assigned_to != request.user:
+                    notify(inc.assigned_to, f"{inc.incident_number} status updated to {new_status}", 'incident', inc.pk)
                 messages.success(request, "Status updated.")
         elif action == 'assign':
             assignee_id = request.POST.get('assigned_to')
@@ -1048,6 +1053,8 @@ def incident_detail(request, pk):
                 if assignee:
                     inc.assigned_to = assignee; inc.save()
                     notify(assignee, f"{inc.incident_number} assigned to you", 'incident', inc.pk)
+                    if inc.raised_by and inc.raised_by != assignee:
+                        notify(inc.raised_by, f"{inc.incident_number} has been reassigned to {assignee.get_full_name()}", 'incident', inc.pk)
                     messages.success(request, f"Assigned to {assignee.get_full_name()}.")
         return redirect('incident_detail', pk=pk)
 
