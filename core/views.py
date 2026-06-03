@@ -968,8 +968,8 @@ def incident_create(request):
     scope_chus = request.user.get_scope_chus()
     role = request.user.role
 
-    show_county = role in ('superuser', 'tech_team')
-    show_subcounty = role in ('superuser', 'tech_team', 'country')
+    show_county = role in ('superuser', 'tech_team', 'country')
+    show_subcounty = role in ('superuser', 'tech_team', 'country', 'county')
     show_chu_direct = role in ('subcounty', 'cha')
 
     if role in ('superuser', 'tech_team'):
