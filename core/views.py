@@ -939,8 +939,9 @@ def download_cha_template(request):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _inc_scope(user):
-    return Incident.objects.filter(chu__in=user.get_scope_chus()).select_related('category', 'chu', 'raised_by', 'assigned_to')
-
+    return Incident.objects.filter(
+        Q(chu__in=user.get_scope_chus()) | Q(assigned_to=user)
+    ).distinct().select_related('category', 'chu', 'raised_by', 'assigned_to')
 
 @login_required
 def incident_list(request):
@@ -1005,7 +1006,8 @@ def incident_create(request):
 @login_required
 def incident_detail(request, pk):
     inc = get_object_or_404(Incident, pk=pk)
-    if inc.chu not in request.user.get_scope_chus():
+    # Allow access if within scope OR assigned to this user
+    if not request.user.get_scope_chus().filter(pk=inc.chu_id).exists() and inc.assigned_to != request.user:
         messages.error(request, "Access denied."); return redirect('incident_list')
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -1042,7 +1044,6 @@ def incident_detail(request, pk):
     return render(request, 'incidents/incident_detail.html', {
         'incident': inc, 'assignable_users': assignable, 'status_choices': Incident.STATUS,
     })
-
 
 @login_required
 def incident_edit(request, pk):
