@@ -278,13 +278,16 @@ def _starting_level(user):
 
 def _device_stats(chus):
     qs = Device.objects.filter(chu__in=chus)
+    # Lost devices that have been replaced should not count in total or lost
+    replaced_originals = qs.filter(status='replaced', replaced_by__isnull=False)
+    replaced_originals_count = replaced_originals.count()
     return {
-        'total': qs.count(),
+        'total': qs.count() - replaced_originals_count,
         'active': qs.filter(status='active').count(),
         'damaged': qs.filter(status='damaged').count(),
         'under_repair': qs.filter(status='under_repair').count(),
         'lost': qs.filter(status='lost').count(),
-        'replaced': qs.filter(status='replaced').count(),
+        'replaced': qs.filter(status='replaced', replaced_by__isnull=False).count(),
     }
 
 
@@ -385,12 +388,13 @@ def device_list(request):
     else:
         summary_chus = scope_chus
 
-    all_devices = Device.objects.filter(chu__in=summary_chus)
-    summary = {s: all_devices.filter(status=s).count() for s in ['active', 'damaged', 'under_repair', 'lost', 'replaced']}
-    summary['total'] = all_devices.count()
-    summary['using_personal'] = all_devices.filter(reporting_status='using_personal').count()
-    summary['not_reporting'] = all_devices.filter(reporting_status='not_reporting').count()
-
+        base_qs = Device.objects.filter(chu__in=summary_chus)
+        base_replaced_originals = base_qs.filter(status='replaced', replaced_by__isnull=False).count()
+        counts = {s: base_qs.filter(status=s).count() for s in ['active', 'damaged', 'under_repair', 'lost', 'replaced']}
+        counts['total'] = base_qs.count() - base_replaced_originals
+        counts['using_personal'] = base_qs.filter(reporting_status='using_personal').count()
+        counts['not_reporting'] = base_qs.filter(reporting_status='not_reporting').count()
+    
     if drill_level == 'devices' and device_qs is not None:
         if status_f: device_qs = device_qs.filter(status=status_f)
         if reporting_f: device_qs = device_qs.filter(reporting_status=reporting_f)
