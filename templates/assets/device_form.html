@@ -6,7 +6,7 @@
 <div class="page-header">
   <div>
     <div class="page-title">{{ title }}</div>
-    {% if obj %}<div class="page-subtitle">Editing: {{ obj }}</div>{% endif %}
+    {% if obj %}<div class="page-subtitle">{{ obj.assigned_to_name }} — {{ obj.chu.name }}</div>{% endif %}
   </div>
   <div class="page-header-actions">
     <a href="{% url 'device_list' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
@@ -15,31 +15,15 @@
 
 <div class="card" style="max-width:760px;">
   <div class="card-body">
-    <form method="post">
+    <form method="post" id="deviceForm">
       {% csrf_token %}
 
-      {% if status_only %}
-      <!-- CHA/Ward CHA — status and notes only -->
-      <div class="form-grid">
+      {% if not status_only %}
+      <!-- Full edit fields -->
+      <div class="section-label">Device Details</div>
+      <div class="form-grid" style="margin-bottom:20px;">
         <div class="form-group">
-          <label class="form-label req">Status</label>
-          <select name="status" class="form-control">
-            {% for val, label in statuses %}
-            <option value="{{ val }}" {% if obj and obj.status == val %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="form-group span-2">
-          <label class="form-label">Notes</label>
-          <textarea name="notes" class="form-control" rows="3">{{ obj.notes|default:'' }}</textarea>
-        </div>
-      </div>
-
-      {% else %}
-      <!-- Full form -->
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label req">Assigned To (Name)</label>
+          <label class="form-label req">Assigned To</label>
           <input type="text" name="assigned_to_name" class="form-control" value="{{ obj.assigned_to_name|default:'' }}" required>
         </div>
         <div class="form-group">
@@ -80,23 +64,79 @@
           <input type="text" name="imei" class="form-control" value="{{ obj.imei|default:'' }}">
         </div>
         <div class="form-group">
+          <label class="form-label">Date Assigned</label>
+          <input type="date" name="date_assigned" class="form-control" value="{{ obj.date_assigned|default:'' }}">
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Status section — all users -->
+      <div class="section-label">Status Update</div>
+      <div class="form-grid" style="margin-bottom:20px;">
+        <div class="form-group">
           <label class="form-label req">Status</label>
-          <select name="status" class="form-control">
+          <select name="status" class="form-control" id="statusSelect" onchange="handleStatusChange(this.value)">
             {% for val, label in statuses %}
             <option value="{{ val }}" {% if obj and obj.status == val %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">Date Assigned</label>
-          <input type="date" name="date_assigned" class="form-control" value="{{ obj.date_assigned|default:'' }}">
+
+        <!-- Incident date — shown for damaged/under_repair/lost/replaced -->
+        <div class="form-group" id="incidentDateGroup" style="display:{% if obj and obj.needs_incident_info %}block{% else %}none{% endif %};">
+          <label class="form-label">When did this happen?</label>
+          <input type="date" name="incident_date" class="form-control" value="{{ obj.incident_date|default:'' }}">
         </div>
+
+        <!-- Reporting status — shown for damaged/under_repair/lost/replaced -->
+        <div class="form-group" id="reportingGroup" style="display:{% if obj and obj.needs_incident_info %}block{% else %}none{% endif %};">
+          <label class="form-label">CHP currently reporting via?</label>
+          <select name="reporting_status" class="form-control">
+            {% for val, label in reporting_statuses %}
+            <option value="{{ val }}" {% if obj and obj.reporting_status == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
         <div class="form-group span-2">
           <label class="form-label">Notes</label>
-          <textarea name="notes" class="form-control" rows="3">{{ obj.notes|default:'' }}</textarea>
+          <textarea name="notes" class="form-control" rows="2">{{ obj.notes|default:'' }}</textarea>
         </div>
       </div>
-      {% endif %}
+
+      <!-- Replacement device — shown when status = replaced -->
+      <div id="replacementSection" style="display:{% if obj and obj.status == 'replaced' %}block{% else %}none{% endif %};">
+        <div class="section-label" style="color:var(--lg-orange);border-color:var(--lg-orange-light);">
+          <i class="fa-solid fa-mobile-screen"></i> Replacement Device Details
+        </div>
+        <div style="background:var(--lg-orange-light);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:0.82rem;color:var(--lg-orange-dark);">
+          <i class="fa-solid fa-circle-info"></i> Enter the details of the new phone the CHP purchased. A new device record will be created automatically.
+        </div>
+        {% if obj and obj.replaced_by %}
+        <div style="background:var(--success-light);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:0.82rem;color:var(--success);">
+          <i class="fa-solid fa-circle-check"></i> Already replaced by: <strong>{{ obj.replaced_by.phone_model|default:"New device" }}</strong> (SN: {{ obj.replaced_by.serial_number|default:"—" }})
+        </div>
+        {% else %}
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">New Phone Model</label>
+            <input type="text" name="new_phone_model" class="form-control" placeholder="e.g. Samsung Galaxy A15">
+          </div>
+          <div class="form-group">
+            <label class="form-label">New Serial Number</label>
+            <input type="text" name="new_serial_number" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">New IMEI</label>
+            <input type="text" name="new_imei" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date of Replacement</label>
+            <input type="date" name="new_date_assigned" class="form-control">
+          </div>
+        </div>
+        {% endif %}
+      </div>
 
       <hr class="divider">
       <div class="d-flex gap-3">
@@ -106,4 +146,18 @@
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function handleStatusChange(status) {
+  const needsInfo = ['damaged', 'under_repair', 'lost', 'replaced'].includes(status);
+  const isReplaced = status === 'replaced';
+  document.getElementById('incidentDateGroup').style.display = needsInfo ? 'block' : 'none';
+  document.getElementById('reportingGroup').style.display = needsInfo ? 'block' : 'none';
+  document.getElementById('replacementSection').style.display = isReplaced ? 'block' : 'none';
+}
+// Run on load to set correct state
+handleStatusChange(document.getElementById('statusSelect').value);
+</script>
 {% endblock %}

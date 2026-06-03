@@ -368,11 +368,11 @@ def device_list(request):
     drill_level, items, breadcrumb, device_qs, chu_filter = _device_drill(request)
     status_f = request.GET.get('status', '')
     search = request.GET.get('q', '')
+    reporting_f = request.GET.get('reporting', '')
     counts = {}
     devices = []
     scope_chus = request.user.get_scope_chus()
 
-    # Summary reflects current drill level not full scope
     if chu_filter:
         summary_chus = CHU.objects.filter(pk=chu_filter)
     elif request.GET.get('subcounty'):
@@ -385,24 +385,30 @@ def device_list(request):
         summary_chus = scope_chus
 
     all_devices = Device.objects.filter(chu__in=summary_chus)
-    summary = {s: all_devices.filter(status=s).count() for s in ['active', 'damaged', 'under_repair', 'lost']}
+    summary = {s: all_devices.filter(status=s).count() for s in ['active', 'damaged', 'under_repair', 'lost', 'replaced']}
     summary['total'] = all_devices.count()
+    summary['using_personal'] = all_devices.filter(reporting_status='using_personal').count()
+    summary['not_reporting'] = all_devices.filter(reporting_status='not_reporting').count()
 
     if drill_level == 'devices' and device_qs is not None:
         if status_f: device_qs = device_qs.filter(status=status_f)
+        if reporting_f: device_qs = device_qs.filter(reporting_status=reporting_f)
         if search: device_qs = device_qs.filter(
             Q(assigned_to_name__icontains=search) | Q(phone_model__icontains=search) |
             Q(imei__icontains=search) | Q(serial_number__icontains=search)
         )
         base_qs = Device.objects.filter(chu__in=summary_chus)
-        counts = {s: base_qs.filter(status=s).count() for s in ['active', 'damaged', 'under_repair', 'lost']}
+        counts = {s: base_qs.filter(status=s).count() for s in ['active', 'damaged', 'under_repair', 'lost', 'replaced']}
         counts['total'] = base_qs.count()
-        devices = device_qs.order_by('-created_at')
+        counts['using_personal'] = base_qs.filter(reporting_status='using_personal').count()
+        counts['not_reporting'] = base_qs.filter(reporting_status='not_reporting').count()
+        devices = device_qs.select_related('replaced_by', 'replaces').order_by('-created_at')
 
     return render(request, 'assets/device_list.html', {
         'drill_level': drill_level, 'items': items, 'breadcrumb': breadcrumb,
         'devices': devices, 'counts': counts, 'summary': summary,
         'status_f': status_f, 'search': search, 'chu_filter': chu_filter,
+        'reporting_f': reporting_f,
     })
 
 
@@ -430,6 +436,7 @@ def device_create(request):
     return render(request, 'assets/device_form.html', {
         'title': 'Add Device', 'chus': request.user.get_scope_chus(),
         'device_types': Device.DEVICE_TYPES, 'roles': Device.ROLES, 'statuses': Device.STATUS,
+        'reporting_statuses': Device.REPORTING_STATUS,
     })
 
 
@@ -439,10 +446,18 @@ def device_edit(request, pk):
     if device.chu not in request.user.get_scope_chus():
         messages.error(request, "Access denied."); return redirect('device_list')
     if request.method == 'POST':
-        if request.user.role == 'cha':
-            device.status = request.POST.get('status', device.status)
-            device.notes = request.POST.get('notes', device.notes)
-        else:
+        new_status = request.POST.get('status', device.status)
+
+        device.status = new_status
+        device.notes = request.POST.get('notes', device.notes)
+        device.incident_date = request.POST.get('incident_date') or None
+        device.reporting_status = request.POST.get('reporting_status', 'normal')
+
+        if new_status == 'active':
+            device.reporting_status = 'normal'
+            device.incident_date = None
+
+        if request.user.role != 'cha':
             chu = get_object_or_404(CHU, pk=request.POST.get('chu'))
             device.device_type = request.POST.get('device_type', device.device_type)
             device.assigned_to_name = request.POST.get('assigned_to_name', device.assigned_to_name)
@@ -451,17 +466,38 @@ def device_edit(request, pk):
             device.phone_model = request.POST.get('phone_model', '')
             device.imei = request.POST.get('imei', '')
             device.serial_number = request.POST.get('serial_number', '')
-            device.status = request.POST.get('status', device.status)
             device.date_assigned = request.POST.get('date_assigned') or None
-            device.notes = request.POST.get('notes', '')
+
         device.updated_by = request.user
         device.save()
+
+        if new_status == 'replaced' and request.POST.get('new_phone_model'):
+            replacement = Device.objects.create(
+                device_type=device.device_type,
+                assigned_to_name=device.assigned_to_name,
+                assigned_to_role=device.assigned_to_role,
+                chu=device.chu,
+                phone_model=request.POST.get('new_phone_model', '').strip(),
+                imei=request.POST.get('new_imei', '').strip(),
+                serial_number=request.POST.get('new_serial_number', '').strip(),
+                status='active',
+                date_assigned=request.POST.get('new_date_assigned') or None,
+                reporting_status='normal',
+                created_by=request.user, updated_by=request.user,
+            )
+            device.replaced_by = replacement
+            device.save()
+            messages.success(request, f"Device marked as replaced. New device record created for {device.assigned_to_name}.")
+        else:
+            messages.success(request, "Device updated.")
+
         log_action(request, 'UPDATE', 'Device', device.pk)
-        messages.success(request, "Device updated.")
         return redirect('device_list')
+
     return render(request, 'assets/device_form.html', {
         'title': 'Edit Device', 'obj': device, 'chus': request.user.get_scope_chus(),
         'device_types': Device.DEVICE_TYPES, 'roles': Device.ROLES, 'statuses': Device.STATUS,
+        'reporting_statuses': Device.REPORTING_STATUS,
         'status_only': request.user.role == 'cha',
     })
 

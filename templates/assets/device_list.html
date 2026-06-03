@@ -50,6 +50,21 @@
     <div class="stat-label">Lost</div>
     <i class="fa-solid fa-question stat-icon"></i>
   </div>
+  <div class="stat-card stat-sky">
+    <div class="stat-value">{{ summary.replaced }}</div>
+    <div class="stat-label">Replaced</div>
+    <i class="fa-solid fa-arrows-rotate stat-icon"></i>
+  </div>
+  <div class="stat-card stat-orange">
+    <div class="stat-value">{{ summary.using_personal }}</div>
+    <div class="stat-label">Using Personal</div>
+    <i class="fa-solid fa-mobile stat-icon"></i>
+  </div>
+  <div class="stat-card stat-danger">
+    <div class="stat-value">{{ summary.not_reporting }}</div>
+    <div class="stat-label">Not Reporting</div>
+    <i class="fa-solid fa-circle-minus stat-icon"></i>
+  </div>
 </div>
 
 <!-- DRILL-DOWN CARDS -->
@@ -124,6 +139,18 @@
     <div class="stat-value">{{ counts.lost }}</div><div class="stat-label">Lost</div>
     <i class="fa-solid fa-question stat-icon"></i>
   </a>
+  <a href="?{% if chu_filter %}level=devices&chu={{ chu_filter }}&{% endif %}status=replaced" class="stat-card stat-sky">
+    <div class="stat-value">{{ counts.replaced }}</div><div class="stat-label">Replaced</div>
+    <i class="fa-solid fa-arrows-rotate stat-icon"></i>
+  </a>
+  <a href="?{% if chu_filter %}level=devices&chu={{ chu_filter }}&{% endif %}reporting=using_personal" class="stat-card stat-orange">
+    <div class="stat-value">{{ counts.using_personal }}</div><div class="stat-label">Using Personal</div>
+    <i class="fa-solid fa-mobile stat-icon"></i>
+  </a>
+  <a href="?{% if chu_filter %}level=devices&chu={{ chu_filter }}&{% endif %}reporting=not_reporting" class="stat-card stat-danger">
+    <div class="stat-value">{{ counts.not_reporting }}</div><div class="stat-label">Not Reporting</div>
+    <i class="fa-solid fa-circle-minus stat-icon"></i>
+  </a>
 </div>
 
 <form method="get" class="filter-bar">
@@ -147,7 +174,7 @@
   {% if devices %}
   <div class="table-container">
     <table>
-      <thead><tr><th>Name</th><th>Role</th><th>Type</th><th>Model</th><th>Serial No.</th><th>IMEI</th><th>CHU</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>Role</th><th>Type</th><th>Model</th><th>Serial No.</th><th>IMEI</th><th>CHU</th><th>Status</th><th>Incident Date</th><th>Reporting</th><th></th></tr></thead>
       <tbody>
         {% for device in devices %}
         <tr>
@@ -158,7 +185,23 @@
           <td class="font-mono" style="font-size:0.77rem;color:var(--gray-500);">{{ device.serial_number|default:"—" }}</td>
           <td class="font-mono" style="font-size:0.77rem;color:var(--gray-500);">{{ device.imei|default:"—" }}</td>
           <td style="font-size:0.8rem;">{{ device.chu.name }}</td>
-          <td><span class="badge badge-{{ device.status_color }}">{{ device.get_status_display }}</span></td>
+          <td>
+            <span class="badge badge-{{ device.status_color }}">{{ device.get_status_display }}</span>
+            {% if device.status == 'replaced' and device.replaced_by %}
+            <div style="font-size:0.7rem;color:var(--gray-400);margin-top:2px;">→ {{ device.replaced_by.phone_model|default:"New device" }}</div>
+            {% endif %}
+            {% if device.replaces %}
+            <div style="font-size:0.7rem;color:var(--success);margin-top:2px;"><i class="fa-solid fa-arrows-rotate"></i> Replaces old device</div>
+            {% endif %}
+          </td>
+          <td style="font-size:0.78rem;color:var(--gray-500);">{{ device.incident_date|default:"—" }}</td>
+          <td>
+            {% if device.reporting_status == 'using_personal' %}
+            <span class="badge badge-orange">Personal Phone</span>
+            {% elif device.reporting_status == 'not_reporting' %}
+            <span class="badge badge-danger">Not Reporting</span>
+            {% else %}—{% endif %}
+          </td>
           <td>
             <div class="d-flex gap-2">
               <a href="{% url 'device_edit' device.pk %}" class="btn btn-outline btn-xs"><i class="fa-solid fa-pen"></i> Edit</a>

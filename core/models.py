@@ -50,15 +50,12 @@ class User(AbstractUser):
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='cha')
     phone = models.CharField(max_length=20, blank=True)
-    temp_password = models.CharField(max_length=100, blank=True)
     country = models.ForeignKey(Country, null=True, blank=True, on_delete=models.SET_NULL, related_name='users')
     county = models.ForeignKey(County, null=True, blank=True, on_delete=models.SET_NULL, related_name='users')
     subcounty = models.ForeignKey(SubCounty, null=True, blank=True, on_delete=models.SET_NULL, related_name='users')
     ward = models.ForeignKey(Ward, null=True, blank=True, on_delete=models.SET_NULL, related_name='users')
     chus = models.ManyToManyField(CHU, blank=True, related_name='users')
     must_change_password = models.BooleanField(default=False)
-    
-
 
     def __str__(self): return f"{self.get_full_name() or self.username} ({self.get_role_display()})"
 
@@ -96,8 +93,19 @@ class User(AbstractUser):
 
 class Device(models.Model):
     DEVICE_TYPES = [('phone', 'Phone'), ('tablet', 'Tablet'), ('laptop', 'Laptop')]
-    STATUS = [('active', 'Active'), ('damaged', 'Damaged'), ('under_repair', 'Under Repair'), ('lost', 'Lost')]
+    STATUS = [
+        ('active', 'Active'),
+        ('damaged', 'Damaged'),
+        ('under_repair', 'Under Repair'),
+        ('lost', 'Lost'),
+        ('replaced', 'Replaced'),
+    ]
     ROLES = [('chp', 'CHP'), ('cha', 'CHA'), ('focal_person', 'Focal Person')]
+    REPORTING_STATUS = [
+        ('normal', 'Reporting Normally'),
+        ('using_personal', 'Using Personal Phone'),
+        ('not_reporting', 'Not Reporting'),
+    ]
 
     device_type = models.CharField(max_length=20, choices=DEVICE_TYPES)
     assigned_to_name = models.CharField(max_length=150)
@@ -108,6 +116,9 @@ class Device(models.Model):
     serial_number = models.CharField(max_length=100, blank=True)
     status = models.CharField(max_length=20, choices=STATUS, default='active')
     date_assigned = models.DateField(null=True, blank=True)
+    incident_date = models.DateField(null=True, blank=True, help_text="When did the damage/loss/repair happen?")
+    reporting_status = models.CharField(max_length=20, choices=REPORTING_STATUS, default='normal')
+    replaced_by = models.OneToOneField('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='replaces')
     notes = models.TextField(blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='+')
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='+')
@@ -118,7 +129,14 @@ class Device(models.Model):
 
     @property
     def status_color(self):
-        return {'active': 'success', 'damaged': 'danger', 'under_repair': 'warning', 'lost': 'secondary'}[self.status]
+        return {
+            'active': 'success', 'damaged': 'danger',
+            'under_repair': 'warning', 'lost': 'secondary', 'replaced': 'info'
+        }.get(self.status, 'secondary')
+
+    @property
+    def needs_incident_info(self):
+        return self.status in ('damaged', 'under_repair', 'lost', 'replaced')
 
 
 # ─── CREDENTIALS ──────────────────────────────────────────────────────────────
@@ -232,11 +250,11 @@ class Incident(models.Model):
 
     @property
     def status_color(self):
-        return {'open': 'danger', 'in_progress': 'warning', 'escalated': 'orange', 'resolved': 'success', 'closed': 'secondary'}.get(self.status.lower(), 'secondary')
+        return {'open': 'danger', 'in_progress': 'warning', 'escalated': 'orange', 'resolved': 'success', 'closed': 'secondary'}[self.status]
 
     @property
     def priority_color(self):
-        return {'low': 'success', 'medium': 'info', 'high': 'warning', 'critical': 'danger'}.get(self.priority.lower(), 'secondary')
+        return {'low': 'success', 'medium': 'info', 'high': 'warning', 'critical': 'danger'}[self.priority]
 
 class IncidentUpdate(models.Model):
     incident = models.ForeignKey(Incident, on_delete=models.CASCADE, related_name='updates')
