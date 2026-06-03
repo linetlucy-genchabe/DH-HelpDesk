@@ -976,27 +976,85 @@ def download_cha_template(request):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _inc_scope(user):
+    """All incidents in user scope."""
     return Incident.objects.filter(
-        Q(chu__in=user.get_scope_chus()) | Q(assigned_to=user)
-    ).distinct().select_related('category', 'chu', 'raised_by', 'assigned_to')
+        chu__in=user.get_scope_chus()
+    ).distinct().select_related('category', 'chu__ward__subcounty__county', 'raised_by', 'assigned_to')
 
 @login_required
 def incident_list(request):
     qs = _inc_scope(request.user)
+    scope_chus = request.user.get_scope_chus()
+    role = request.user.role
+
     status_f = request.GET.get('status', '')
     priority_f = request.GET.get('priority', '')
     cat_f = request.GET.get('category', '')
     search = request.GET.get('q', '')
+    county_f = request.GET.get('county', '')
+    subcounty_f = request.GET.get('subcounty', '')
+    ward_f = request.GET.get('ward', '')
+    chu_f = request.GET.get('chu', '')
+
     if status_f: qs = qs.filter(status=status_f)
     if priority_f: qs = qs.filter(priority=priority_f)
     if cat_f: qs = qs.filter(category_id=cat_f)
     if search: qs = qs.filter(Q(title__icontains=search) | Q(incident_number__icontains=search) | Q(description__icontains=search))
+    if county_f: qs = qs.filter(chu__ward__subcounty__county_id=county_f)
+    if subcounty_f: qs = qs.filter(chu__ward__subcounty_id=subcounty_f)
+    if ward_f: qs = qs.filter(chu__ward_id=ward_f)
+    if chu_f: qs = qs.filter(chu_id=chu_f)
+
+    # Also include incidents assigned to me outside scope
+    assigned_to_me = Incident.objects.filter(
+        assigned_to=request.user
+    ).exclude(chu__in=scope_chus).select_related('category', 'chu__ward__subcounty__county', 'raised_by', 'assigned_to')
+
+    all_incidents = list(qs.order_by('-created_at')) + list(assigned_to_me.order_by('-created_at'))
+
     scope = _inc_scope(request.user)
     counts = {s: scope.filter(status=s).count() for s in ['open', 'in_progress', 'escalated', 'resolved', 'closed']}
+
+    # Geography filter dropdowns scoped to user
+    if role in ('superuser', 'tech_team'):
+        filter_counties = County.objects.all()
+        filter_subcounties = SubCounty.objects.filter(county_id=county_f) if county_f else SubCounty.objects.none()
+        filter_wards = Ward.objects.filter(subcounty_id=subcounty_f) if subcounty_f else Ward.objects.none()
+        filter_chus = CHU.objects.filter(ward_id=ward_f) if ward_f else (CHU.objects.filter(ward__subcounty_id=subcounty_f) if subcounty_f else CHU.objects.none())
+    elif role == 'country':
+        filter_counties = County.objects.filter(country=request.user.country)
+        filter_subcounties = SubCounty.objects.filter(county_id=county_f) if county_f else SubCounty.objects.filter(county__country=request.user.country)
+        filter_wards = Ward.objects.filter(subcounty_id=subcounty_f) if subcounty_f else Ward.objects.none()
+        filter_chus = CHU.objects.filter(ward_id=ward_f) if ward_f else (CHU.objects.filter(ward__subcounty_id=subcounty_f) if subcounty_f else CHU.objects.none())
+    elif role == 'county':
+        filter_counties = County.objects.filter(pk=request.user.county_id)
+        filter_subcounties = SubCounty.objects.filter(county=request.user.county)
+        filter_wards = Ward.objects.filter(subcounty_id=subcounty_f) if subcounty_f else Ward.objects.none()
+        filter_chus = CHU.objects.filter(ward_id=ward_f) if ward_f else (CHU.objects.filter(ward__subcounty_id=subcounty_f) if subcounty_f else scope_chus)
+    elif role == 'subcounty':
+        filter_counties = County.objects.none()
+        filter_subcounties = SubCounty.objects.filter(pk=request.user.subcounty_id)
+        filter_wards = Ward.objects.filter(subcounty=request.user.subcounty)
+        filter_chus = CHU.objects.filter(ward_id=ward_f) if ward_f else scope_chus
+    else:
+        filter_counties = County.objects.none()
+        filter_subcounties = County.objects.none()
+        filter_wards = Ward.objects.none()
+        filter_chus = scope_chus
+
     return render(request, 'incidents/incident_list.html', {
-        'incidents': qs.order_by('-created_at'), 'counts': counts,
+        'incidents': all_incidents, 'counts': counts,
         'categories': IncidentCategory.objects.filter(is_active=True),
         'status_f': status_f, 'priority_f': priority_f, 'cat_f': cat_f, 'search': search,
+        'county_f': county_f, 'subcounty_f': subcounty_f, 'ward_f': ward_f, 'chu_f': chu_f,
+        'filter_counties': filter_counties,
+        'filter_subcounties': filter_subcounties,
+        'filter_wards': filter_wards,
+        'filter_chus': filter_chus,
+        'show_county_filter': role in ('superuser', 'tech_team', 'country'),
+        'show_subcounty_filter': role in ('superuser', 'tech_team', 'country', 'county'),
+        'show_ward_filter': role in ('subcounty', 'county', 'superuser', 'tech_team', 'country'),
+        'show_chu_filter': True,
     })
 
 
