@@ -9,54 +9,101 @@
     {% if obj %}<div class="page-subtitle">Editing: {{ obj }}</div>{% endif %}
   </div>
   <div class="page-header-actions">
-    <a href="javascript:history.back()" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    <a href="{% url 'device_list' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
   </div>
 </div>
 
-<div class="card" style="max-width:900px;">
+<div class="card" style="max-width:760px;">
   <div class="card-body">
-    <form method="post" enctype="multipart/form-data">
+    <form method="post">
       {% csrf_token %}
+
+      {% if status_only %}
+      <!-- CHA/Ward CHA — status and notes only -->
       <div class="form-grid">
-        {% for field in form %}
-        <div class="form-group {% if field.field.widget.attrs.rows %}span-2{% endif %}">
-          <label class="form-label{% if field.field.required %} req{% endif %}" for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {% if field.field.widget.input_type == 'checkbox' %}
-            <div style="display:flex;align-items:center;gap:8px;">
-              {{ field }}
-              <span style="font-size:0.82rem;color:var(--gray-600);">{{ field.help_text }}</span>
-            </div>
-          {% else %}
-            {% if field.field.widget.allow_multiple_selected %}
-              <select name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-control" multiple style="min-height:100px;">
-                {% for choice in field.field.choices %}
-                <option value="{{ choice.0 }}" {% if choice.0 in field.value %}selected{% endif %}>{{ choice.1 }}</option>
-                {% endfor %}
-              </select>
-            {% else %}
-              {{ field }}
-            {% endif %}
-          {% endif %}
-          {% if field.errors %}<span class="form-error">{{ field.errors|join:", " }}</span>{% endif %}
-          {% if field.help_text and not field.field.widget.input_type == 'checkbox' %}<span class="form-hint">{{ field.help_text }}</span>{% endif %}
+        <div class="form-group">
+          <label class="form-label req">Status</label>
+          <select name="status" class="form-control">
+            {% for val, label in statuses %}
+            <option value="{{ val }}" {% if obj and obj.status == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
         </div>
-        {% endfor %}
+        <div class="form-group span-2">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-control" rows="3">{{ obj.notes|default:'' }}</textarea>
+        </div>
       </div>
+
+      {% else %}
+      <!-- Full form -->
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label req">Assigned To (Name)</label>
+          <input type="text" name="assigned_to_name" class="form-control" value="{{ obj.assigned_to_name|default:'' }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label req">Role</label>
+          <select name="assigned_to_role" class="form-control">
+            {% for val, label in roles %}
+            <option value="{{ val }}" {% if obj and obj.assigned_to_role == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label req">CHU</label>
+          <select name="chu" class="form-control" required>
+            <option value="">— Select CHU —</option>
+            {% for chu in chus %}
+            <option value="{{ chu.pk }}" {% if obj and obj.chu_id == chu.pk %}selected{% endif %}>{{ chu.name }} ({{ chu.ward.subcounty.name }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label req">Device Type</label>
+          <select name="device_type" class="form-control">
+            {% for val, label in device_types %}
+            <option value="{{ val }}" {% if obj and obj.device_type == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Model</label>
+          <input type="text" name="phone_model" class="form-control" value="{{ obj.phone_model|default:'' }}" placeholder="e.g. Samsung Galaxy A05">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Serial Number</label>
+          <input type="text" name="serial_number" class="form-control" value="{{ obj.serial_number|default:'' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">IMEI</label>
+          <input type="text" name="imei" class="form-control" value="{{ obj.imei|default:'' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label req">Status</label>
+          <select name="status" class="form-control">
+            {% for val, label in statuses %}
+            <option value="{{ val }}" {% if obj and obj.status == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date Assigned</label>
+          <input type="date" name="date_assigned" class="form-control" value="{{ obj.date_assigned|default:'' }}">
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-control" rows="3">{{ obj.notes|default:'' }}</textarea>
+        </div>
+      </div>
+      {% endif %}
+
       <hr class="divider">
       <div class="d-flex gap-3">
-        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save</button>
-        <a href="javascript:history.back()" class="btn btn-outline">Cancel</a>
+        <button type="submit" class="btn btn-orange"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+        <a href="{% url 'device_list' %}" class="btn btn-outline">Cancel</a>
       </div>
     </form>
   </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-// Apply form-control class to all Django-rendered form fields
-document.querySelectorAll('input:not([type=checkbox]):not([type=radio]):not([type=file]), select:not([multiple]), textarea').forEach(el => {
-  if (!el.classList.contains('form-control')) el.classList.add('form-control');
-});
-</script>
 {% endblock %}
