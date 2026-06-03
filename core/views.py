@@ -278,16 +278,14 @@ def _starting_level(user):
 
 def _device_stats(chus):
     qs = Device.objects.filter(chu__in=chus)
-    # Lost devices that have been replaced should not count in total or lost
-    replaced_originals = qs.filter(status='replaced', replaced_by__isnull=False)
-    replaced_originals_count = replaced_originals.count()
+    replaced_originals = qs.filter(status='replaced', replaced_by__isnull=False).count()
     return {
-        'total': qs.count() - replaced_originals_count,
+        'total': qs.count() - replaced_originals,
         'active': qs.filter(status='active').count(),
         'damaged': qs.filter(status='damaged').count(),
         'under_repair': qs.filter(status='under_repair').count(),
-        'lost': qs.filter(status='lost').count(),
-        'replaced': qs.filter(status='replaced', replaced_by__isnull=False).count(),
+        'lost': qs.filter(status='lost').count() + replaced_originals,
+        'replaced': replaced_originals,
     }
 
 
@@ -1010,6 +1008,9 @@ def incident_list(request):
     if ward_f: qs = qs.filter(chu__ward_id=ward_f)
     if chu_f: qs = qs.filter(chu_id=chu_f)
 
+    # Counts reflect current filters
+    counts = {s: qs.filter(status=s).count() for s in ['open', 'in_progress', 'escalated', 'resolved', 'closed']}
+
     # Also include incidents assigned to me outside scope
     assigned_to_me = Incident.objects.filter(
         assigned_to=request.user
@@ -1017,25 +1018,30 @@ def incident_list(request):
 
     all_incidents = list(qs.order_by('-created_at')) + list(assigned_to_me.order_by('-created_at'))
 
-    scope = _inc_scope(request.user)
-    counts = {s: scope.filter(status=s).count() for s in ['open', 'in_progress', 'escalated', 'resolved', 'closed']}
-
-    # Geography filter dropdowns scoped to user
+    # Geography filter dropdowns — cascade based on what's selected
     if role in ('superuser', 'tech_team'):
         filter_counties = County.objects.all()
         filter_subcounties = SubCounty.objects.filter(county_id=county_f) if county_f else SubCounty.objects.none()
         filter_wards = Ward.objects.filter(subcounty_id=subcounty_f) if subcounty_f else Ward.objects.none()
-        filter_chus = CHU.objects.filter(ward_id=ward_f) if ward_f else (CHU.objects.filter(ward__subcounty_id=subcounty_f) if subcounty_f else CHU.objects.none())
+        filter_chus = (CHU.objects.filter(ward_id=ward_f) if ward_f else
+                      CHU.objects.filter(ward__subcounty_id=subcounty_f) if subcounty_f else
+                      CHU.objects.filter(ward__subcounty__county_id=county_f) if county_f else
+                      CHU.objects.none())
     elif role == 'country':
         filter_counties = County.objects.filter(country=request.user.country)
         filter_subcounties = SubCounty.objects.filter(county_id=county_f) if county_f else SubCounty.objects.filter(county__country=request.user.country)
         filter_wards = Ward.objects.filter(subcounty_id=subcounty_f) if subcounty_f else Ward.objects.none()
-        filter_chus = CHU.objects.filter(ward_id=ward_f) if ward_f else (CHU.objects.filter(ward__subcounty_id=subcounty_f) if subcounty_f else CHU.objects.none())
+        filter_chus = (CHU.objects.filter(ward_id=ward_f) if ward_f else
+                      CHU.objects.filter(ward__subcounty_id=subcounty_f) if subcounty_f else
+                      CHU.objects.filter(ward__subcounty__county_id=county_f) if county_f else
+                      CHU.objects.none())
     elif role == 'county':
         filter_counties = County.objects.filter(pk=request.user.county_id)
         filter_subcounties = SubCounty.objects.filter(county=request.user.county)
         filter_wards = Ward.objects.filter(subcounty_id=subcounty_f) if subcounty_f else Ward.objects.none()
-        filter_chus = CHU.objects.filter(ward_id=ward_f) if ward_f else (CHU.objects.filter(ward__subcounty_id=subcounty_f) if subcounty_f else scope_chus)
+        filter_chus = (CHU.objects.filter(ward_id=ward_f) if ward_f else
+                      CHU.objects.filter(ward__subcounty_id=subcounty_f) if subcounty_f else
+                      scope_chus)
     elif role == 'subcounty':
         filter_counties = County.objects.none()
         filter_subcounties = SubCounty.objects.filter(pk=request.user.subcounty_id)
@@ -1043,7 +1049,7 @@ def incident_list(request):
         filter_chus = CHU.objects.filter(ward_id=ward_f) if ward_f else scope_chus
     else:
         filter_counties = County.objects.none()
-        filter_subcounties = County.objects.none()
+        filter_subcounties = SubCounty.objects.none()
         filter_wards = Ward.objects.none()
         filter_chus = scope_chus
 
@@ -1061,7 +1067,6 @@ def incident_list(request):
         'show_ward_filter': role in ('subcounty', 'county', 'superuser', 'tech_team', 'country'),
         'show_chu_filter': True,
     })
-
 
 @login_required
 def incident_create(request):
