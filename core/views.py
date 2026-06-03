@@ -284,6 +284,7 @@ def _device_stats(chus):
         'damaged': qs.filter(status='damaged').count(),
         'under_repair': qs.filter(status='under_repair').count(),
         'lost': qs.filter(status='lost').count(),
+        'replaced': qs.filter(status='replaced').count(),
     }
 
 
@@ -402,7 +403,7 @@ def device_list(request):
         counts['total'] = base_qs.count()
         counts['using_personal'] = base_qs.filter(reporting_status='using_personal').count()
         counts['not_reporting'] = base_qs.filter(reporting_status='not_reporting').count()
-        devices = device_qs.select_related('replaced_by', 'replaces').order_by('-created_at')
+        devices = device_qs.select_related('replaced_by', 'replaces').order_by('assigned_to_name', 'created_at')
 
     return render(request, 'assets/device_list.html', {
         'drill_level': drill_level, 'items': items, 'breadcrumb': breadcrumb,

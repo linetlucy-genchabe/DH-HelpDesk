@@ -15,6 +15,7 @@
     <a href="{% url 'device_template' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-download"></i> Template</a>
     <a href="{% url 'bulk_upload_devices' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-upload"></i> Bulk Upload</a>
     {% endif %}
+    <a href="{% url 'export_devices' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-file-csv"></i> Export</a>
     {% if request.user.can_add_devices %}
     <a href="{% url 'device_create' %}" class="btn btn-orange"><i class="fa-solid fa-plus"></i> Add Device</a>
     {% endif %}
@@ -83,7 +84,6 @@
     <div class="chu-name">{{ item.name }}</div>
     <div class="chu-sub">{{ item.sub_label }}</div>
     {% if drill_level == 'chus' %}
-    <!-- Only show counts at CHU level -->
     <div style="display:flex;gap:16px;margin-top:12px;padding-top:10px;border-top:1px solid var(--gray-100);">
       <div>
         <div style="font-size:1.1rem;font-weight:800;color:var(--gray-900);line-height:1;">{{ item.total }}</div>
@@ -93,18 +93,18 @@
         <div style="font-size:1.1rem;font-weight:800;color:var(--success);line-height:1;">{{ item.active }}</div>
         <div style="font-size:0.65rem;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Active</div>
       </div>
-      {% if item.damaged %}
       <div>
         <div style="font-size:1.1rem;font-weight:800;color:var(--danger);line-height:1;">{{ item.damaged }}</div>
         <div style="font-size:0.65rem;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Damaged</div>
       </div>
-      {% endif %}
-      {% if item.lost %}
       <div>
         <div style="font-size:1.1rem;font-weight:800;color:var(--gray-400);line-height:1;">{{ item.lost }}</div>
         <div style="font-size:0.65rem;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Lost</div>
       </div>
-      {% endif %}
+      <div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--lg-sky);line-height:1;">{{ item.replaced }}</div>
+        <div style="font-size:0.65rem;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Replaced</div>
+      </div>
     </div>
     {% endif %}
     <div style="text-align:right;margin-top:10px;">
@@ -165,43 +165,44 @@
     <option value="damaged" {% if status_f == 'damaged' %}selected{% endif %}>Damaged</option>
     <option value="under_repair" {% if status_f == 'under_repair' %}selected{% endif %}>Under Repair</option>
     <option value="lost" {% if status_f == 'lost' %}selected{% endif %}>Lost</option>
+    <option value="replaced" {% if status_f == 'replaced' %}selected{% endif %}>Replaced</option>
   </select>
   <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
-  {% if search or status_f %}<a href="{% url 'device_list' %}{% if chu_filter %}?level=devices&chu={{ chu_filter }}{% endif %}" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+  {% if search or status_f or reporting_f %}
+  <a href="{% url 'device_list' %}{% if chu_filter %}?level=devices&chu={{ chu_filter }}{% endif %}" class="btn btn-ghost btn-sm">Clear</a>
+  {% endif %}
 </form>
 
 <div class="card">
   {% if devices %}
   <div class="table-container">
     <table>
-      <thead><tr><th>Name</th><th>Role</th><th>Type</th><th>Model</th><th>Serial No.</th><th>IMEI</th><th>CHU</th><th>Status</th><th>Incident Date</th><th>Reporting</th><th></th></tr></thead>
+      <thead>
+        <tr>
+          <th>Name</th><th>Role</th><th>Type</th><th>Model</th>
+          <th>Serial No.</th><th>IMEI</th><th>CHU</th><th>Status</th>
+          <th>Incident Date</th><th></th>
+        </tr>
+      </thead>
       <tbody>
         {% for device in devices %}
-        <tr>
-          <td style="font-weight:700;">{{ device.assigned_to_name }}</td>
+        <tr style="{% if device.status == 'replaced' %}opacity:0.6;{% endif %}">
+          <td style="font-weight:700;">
+            {{ device.assigned_to_name }}
+            {% if device.status == 'replaced' %}
+            <div style="font-size:0.68rem;color:var(--gray-400);font-weight:400;margin-top:1px;">Original</div>
+            {% elif device.replaces %}
+            <div style="font-size:0.68rem;color:var(--success);font-weight:400;margin-top:1px;"><i class="fa-solid fa-arrow-turn-up"></i> Replacement</div>
+            {% endif %}
+          </td>
           <td><span class="badge badge-secondary">{{ device.get_assigned_to_role_display }}</span></td>
           <td>{{ device.get_device_type_display }}</td>
           <td>{{ device.phone_model|default:"—" }}</td>
           <td class="font-mono" style="font-size:0.77rem;color:var(--gray-500);">{{ device.serial_number|default:"—" }}</td>
           <td class="font-mono" style="font-size:0.77rem;color:var(--gray-500);">{{ device.imei|default:"—" }}</td>
           <td style="font-size:0.8rem;">{{ device.chu.name }}</td>
-          <td>
-            <span class="badge badge-{{ device.status_color }}">{{ device.get_status_display }}</span>
-            {% if device.status == 'replaced' and device.replaced_by %}
-            <div style="font-size:0.7rem;color:var(--gray-400);margin-top:2px;">→ {{ device.replaced_by.phone_model|default:"New device" }}</div>
-            {% endif %}
-            {% if device.replaces %}
-            <div style="font-size:0.7rem;color:var(--success);margin-top:2px;"><i class="fa-solid fa-arrows-rotate"></i> Replaces old device</div>
-            {% endif %}
-          </td>
+          <td><span class="badge badge-{{ device.status_color }}">{{ device.get_status_display }}</span></td>
           <td style="font-size:0.78rem;color:var(--gray-500);">{{ device.incident_date|default:"—" }}</td>
-          <td>
-            {% if device.reporting_status == 'using_personal' %}
-            <span class="badge badge-orange">Personal Phone</span>
-            {% elif device.reporting_status == 'not_reporting' %}
-            <span class="badge badge-danger">Not Reporting</span>
-            {% else %}—{% endif %}
-          </td>
           <td>
             <div class="d-flex gap-2">
               <a href="{% url 'device_edit' device.pk %}" class="btn btn-outline btn-xs"><i class="fa-solid fa-pen"></i> Edit</a>
