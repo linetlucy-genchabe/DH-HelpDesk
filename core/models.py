@@ -50,6 +50,7 @@ class User(AbstractUser):
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='cha')
     phone = models.CharField(max_length=20, blank=True)
+    temp_password = models.CharField(max_length=100, blank=True)
     country = models.ForeignKey(Country, null=True, blank=True, on_delete=models.SET_NULL, related_name='users')
     county = models.ForeignKey(County, null=True, blank=True, on_delete=models.SET_NULL, related_name='users')
     subcounty = models.ForeignKey(SubCounty, null=True, blank=True, on_delete=models.SET_NULL, related_name='users')
@@ -87,7 +88,6 @@ class User(AbstractUser):
             chus = self.chus.all()
             return ", ".join(c.name for c in chus[:2]) + ("..." if chus.count() > 2 else "")
         return ""
-
 
 # ─── ASSETS ───────────────────────────────────────────────────────────────────
 
