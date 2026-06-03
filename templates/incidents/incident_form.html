@@ -45,7 +45,7 @@
 
         {% if show_county %}
         <div class="form-group">
-          <label class="form-label req">County</label>
+          <label class="form-label">County <span class="form-hint">(optional)</span></label>
           <select name="county_filter" id="countySelect" class="form-control">
             <option value="">— Select county —</option>
             {% for c in counties %}
@@ -55,11 +55,11 @@
         </div>
         {% endif %}
 
-        {% if show_subcounty or not show_county and not show_chu_direct %}
+        {% if show_county or show_subcounty or not show_chu_direct %}
         <div class="form-group">
-          <label class="form-label req">Sub-County</label>
+          <label class="form-label">Sub-County <span class="form-hint">(optional)</span></label>
           <select name="subcounty_filter" id="subcountySelect" class="form-control">
-            <option value="">— {% if show_county %}Select county first{% else %}Select sub-county{% endif %} —</option>
+            <option value="">— Select sub-county —</option>
             {% for sc in subcounties %}
             <option value="{{ sc.pk }}" {% if selected_subcounty == sc.pk|stringformat:"s" %}selected{% endif %}>{{ sc.name }}</option>
             {% endfor %}
@@ -68,8 +68,10 @@
         {% endif %}
 
         <div class="form-group">
-          <label class="form-label req">CHU</label>
-          <select name="chu" id="chuSelect" class="form-control" required>
+          <label class="form-label {% if show_chu_direct %}req{% endif %}">
+            CHU {% if not show_chu_direct %}<span class="form-hint">(optional)</span>{% endif %}
+          </label>
+          <select name="chu" id="chuSelect" class="form-control" {% if show_chu_direct %}required{% endif %}>
             <option value="">— Select CHU —</option>
             {% for chu in chus %}
             <option value="{{ chu.pk }}" {% if obj and obj.chu_id == chu.pk %}selected{% endif %}>{{ chu.name }}</option>
@@ -104,36 +106,38 @@
 {% block extra_js %}
 <script>
 {% if show_county %}
-document.getElementById('countySelect').addEventListener('change', function() {
-  const countyId = this.value;
-  const scSelect = document.getElementById('subcountySelect');
-  const chuSelect = document.getElementById('chuSelect');
-  scSelect.innerHTML = '<option value="">— Loading... —</option>';
-  chuSelect.innerHTML = '<option value="">— Select sub-county first —</option>';
-  if (!countyId) {
-    scSelect.innerHTML = '<option value="">— Select county first —</option>';
-    return;
-  }
-  fetch(`/ajax/subcounties/?county_id=${countyId}`)
-    .then(r => r.json())
-    .then(data => {
+const countyEl = document.getElementById('countySelect');
+if (countyEl) {
+  countyEl.addEventListener('change', function() {
+    const countyId = this.value;
+    const scSelect = document.getElementById('subcountySelect');
+    const chuSelect = document.getElementById('chuSelect');
+    chuSelect.innerHTML = '<option value="">— Select CHU —</option>';
+    if (!countyId) {
       scSelect.innerHTML = '<option value="">— Select sub-county —</option>';
-      data.forEach(sc => { scSelect.innerHTML += `<option value="${sc.id}">${sc.name}</option>`; });
-    });
-});
+      return;
+    }
+    scSelect.innerHTML = '<option value="">— Loading... —</option>';
+    fetch(`/ajax/subcounties/?county_id=${countyId}`)
+      .then(r => r.json())
+      .then(data => {
+        scSelect.innerHTML = '<option value="">— Select sub-county —</option>';
+        data.forEach(sc => { scSelect.innerHTML += `<option value="${sc.id}">${sc.name}</option>`; });
+      });
+  });
+}
 {% endif %}
 
-{% if show_county or show_subcounty or not show_chu_direct %}
 const scSelectEl = document.getElementById('subcountySelect');
 if (scSelectEl) {
   scSelectEl.addEventListener('change', function() {
     const scId = this.value;
     const chuSelect = document.getElementById('chuSelect');
-    chuSelect.innerHTML = '<option value="">— Loading... —</option>';
     if (!scId) {
-      chuSelect.innerHTML = '<option value="">— Select sub-county first —</option>';
+      chuSelect.innerHTML = '<option value="">— Select CHU —</option>';
       return;
     }
+    chuSelect.innerHTML = '<option value="">— Loading... —</option>';
     fetch(`/ajax/chus-by-subcounty/?subcounty_id=${scId}`)
       .then(r => r.json())
       .then(data => {
@@ -142,6 +146,5 @@ if (scSelectEl) {
       });
   });
 }
-{% endif %}
 </script>
 {% endblock %}

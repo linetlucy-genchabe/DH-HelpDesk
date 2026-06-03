@@ -975,25 +975,29 @@ def incident_create(request):
     if role in ('superuser', 'tech_team'):
         counties = County.objects.all().select_related('country')
         subcounties = SubCounty.objects.none()
+        chus = CHU.objects.none()
     elif role == 'country':
         counties = County.objects.filter(country=request.user.country)
-        subcounties = SubCounty.objects.none()
+        subcounties = SubCounty.objects.filter(county__country=request.user.country).select_related('county')
+        chus = scope_chus
     elif role == 'county':
         counties = County.objects.filter(pk=request.user.county_id)
         subcounties = SubCounty.objects.filter(county=request.user.county).select_related('county')
+        chus = scope_chus
     else:
         counties = County.objects.none()
         subcounties = SubCounty.objects.none()
-
-    chus = scope_chus if show_chu_direct else CHU.objects.none()
+        chus = scope_chus
 
     if request.method == 'POST':
-        chu = get_object_or_404(CHU, pk=request.POST.get('chu'))
+        chu_id = request.POST.get('chu') or None
+        chu = CHU.objects.filter(pk=chu_id).first() if chu_id else None
         inc = Incident(
             title=request.POST.get('title', '').strip(),
             description=request.POST.get('description', '').strip(),
             category_id=request.POST.get('category') or None,
-            chu=chu, priority=request.POST.get('priority', 'medium'),
+            chu=chu,
+            priority=request.POST.get('priority', 'medium'),
             raised_by=request.user, status='open',
         )
         if request.FILES.get('attachment'): inc.attachment = request.FILES['attachment']
