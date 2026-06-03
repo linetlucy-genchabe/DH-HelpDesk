@@ -388,13 +388,13 @@ def device_list(request):
     else:
         summary_chus = scope_chus
 
-        base_qs = Device.objects.filter(chu__in=summary_chus)
-        base_replaced_originals = base_qs.filter(status='replaced', replaced_by__isnull=False).count()
-        counts = {s: base_qs.filter(status=s).count() for s in ['active', 'damaged', 'under_repair', 'lost', 'replaced']}
-        counts['total'] = base_qs.count() - base_replaced_originals
-        counts['using_personal'] = base_qs.filter(reporting_status='using_personal').count()
-        counts['not_reporting'] = base_qs.filter(reporting_status='not_reporting').count()
-    
+    all_devices = Device.objects.filter(chu__in=summary_chus)
+    replaced_originals = all_devices.filter(status='replaced', replaced_by__isnull=False).count()
+    summary = {s: all_devices.filter(status=s).count() for s in ['active', 'damaged', 'under_repair', 'lost', 'replaced']}
+    summary['total'] = all_devices.count() - replaced_originals
+    summary['using_personal'] = all_devices.filter(reporting_status='using_personal').count()
+    summary['not_reporting'] = all_devices.filter(reporting_status='not_reporting').count()
+
     if drill_level == 'devices' and device_qs is not None:
         if status_f: device_qs = device_qs.filter(status=status_f)
         if reporting_f: device_qs = device_qs.filter(reporting_status=reporting_f)
@@ -403,8 +403,9 @@ def device_list(request):
             Q(imei__icontains=search) | Q(serial_number__icontains=search)
         )
         base_qs = Device.objects.filter(chu__in=summary_chus)
+        base_replaced_originals = base_qs.filter(status='replaced', replaced_by__isnull=False).count()
         counts = {s: base_qs.filter(status=s).count() for s in ['active', 'damaged', 'under_repair', 'lost', 'replaced']}
-        counts['total'] = base_qs.count()
+        counts['total'] = base_qs.count() - base_replaced_originals
         counts['using_personal'] = base_qs.filter(reporting_status='using_personal').count()
         counts['not_reporting'] = base_qs.filter(reporting_status='not_reporting').count()
         devices = device_qs.select_related('replaced_by', 'replaces').order_by('assigned_to_name', 'created_at')
