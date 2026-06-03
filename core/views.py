@@ -66,9 +66,11 @@ def change_password_view(request):
 
 @login_required
 def dashboard(request):
+    from django.utils import timezone
     scope_chus = request.user.get_scope_chus()
     device_qs = Device.objects.filter(chu__in=scope_chus)
     inc_qs = Incident.objects.filter(chu__in=scope_chus)
+    now = timezone.now()
     return render(request, 'dashboard/home.html', {
         'asset_counts': {s: device_qs.filter(status=s).count() for s in ['active', 'damaged', 'under_repair', 'lost']},
         'asset_total': device_qs.count(),
@@ -81,6 +83,9 @@ def dashboard(request):
         'recent_incidents': inc_qs.order_by('-created_at')[:5],
         'scope_label': request.user.get_scope_label(),
         'chu_count': scope_chus.count(),
+        'devices_needing_attention': device_qs.filter(status__in=['damaged', 'under_repair', 'lost']).count(),
+        'chps_not_reporting': device_qs.filter(reporting_status__in=['using_personal', 'not_reporting']).count(),
+        'incidents_resolved_month': inc_qs.filter(status='resolved', updated_at__year=now.year, updated_at__month=now.month).count(),
     })
 
 

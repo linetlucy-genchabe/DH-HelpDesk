@@ -117,30 +117,36 @@
 
 <!-- Quick Stats Row -->
 <div class="stat-grid">
-  <div class="stat-card stat-success">
-    <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
-    <div><div class="stat-value">{{ asset_counts.active }}</div><div class="stat-label">Active Devices</div></div>
-  </div>
-  <div class="stat-card stat-warning">
-    <div class="stat-icon"><i class="fa-solid fa-wrench"></i></div>
-    <div><div class="stat-value">{{ asset_counts.under_repair }}</div><div class="stat-label">Under Repair</div></div>
-  </div>
-  <div class="stat-card stat-danger">
-    <div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
-    <div><div class="stat-value">{{ incident_counts.open }}</div><div class="stat-label">Open Incidents</div></div>
-  </div>
-  <div class="stat-card stat-orange">
-    <div class="stat-icon"><i class="fa-solid fa-arrow-up-right-dots"></i></div>
-    <div><div class="stat-value">{{ incident_counts.escalated }}</div><div class="stat-label">Escalated</div></div>
-  </div>
-  <div class="stat-card stat-sky">
-    <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
-    <div><div class="stat-value">{{ cred_count }}</div><div class="stat-label">CHP Profiles</div></div>
-  </div>
-  <div class="stat-card stat-blue">
-    <div class="stat-icon"><i class="fa-solid fa-house-medical"></i></div>
-    <div><div class="stat-value">{{ chu_count }}</div><div class="stat-label">CHUs in Scope</div></div>
-  </div>
+  <a href="{% url 'device_list' %}?status=active" class="stat-card stat-success">
+    <div class="stat-value">{{ asset_counts.active }}</div>
+    <div class="stat-label">Active Devices</div>
+    <i class="fa-solid fa-circle-check stat-icon"></i>
+  </a>
+  <a href="{% url 'device_list' %}" class="stat-card stat-danger">
+    <div class="stat-value">{{ devices_needing_attention }}</div>
+    <div class="stat-label">Devices Needing Attention</div>
+    <i class="fa-solid fa-triangle-exclamation stat-icon"></i>
+  </a>
+  <a href="{% url 'device_list' %}" class="stat-card stat-orange">
+    <div class="stat-value">{{ chps_not_reporting }}</div>
+    <div class="stat-label">CHPs Not Reporting</div>
+    <i class="fa-solid fa-mobile-screen stat-icon"></i>
+  </a>
+  <a href="{% url 'incident_list' %}?status=open" class="stat-card stat-warning">
+    <div class="stat-value">{{ incident_counts.open }}</div>
+    <div class="stat-label">Open Incidents</div>
+    <i class="fa-solid fa-circle-exclamation stat-icon"></i>
+  </a>
+  <a href="{% url 'incident_list' %}?status=escalated" class="stat-card stat-danger">
+    <div class="stat-value">{{ incident_counts.escalated }}</div>
+    <div class="stat-label">Escalated Incidents</div>
+    <i class="fa-solid fa-arrow-up stat-icon"></i>
+  </a>
+  <a href="{% url 'incident_list' %}?status=resolved" class="stat-card stat-sky">
+    <div class="stat-value">{{ incidents_resolved_month }}</div>
+    <div class="stat-label">Resolved This Month</div>
+    <i class="fa-solid fa-circle-check stat-icon"></i>
+  </a>
 </div>
 
 {% endblock %}
