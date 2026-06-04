@@ -10,7 +10,7 @@ from .models import (
     User, Country, County, SubCounty, Ward, CHU,
     Device, CHPProfile, CHAProfile, StoredCredential, SYSTEM_CHOICES,
     Incident, IncidentCategory, IncidentUpdate,
-    Notification, AuditLog,
+    Notification, PushSubscription, AuditLog,
 )
 from .utils import log_action, notify, generate_username, generate_password
 
@@ -1319,6 +1319,21 @@ def notification_list(request):
     notifs.filter(is_read=False).update(is_read=True)
     return render(request, 'notifications/list.html', {'notifications': notifs})
 
+@login_required
+def push_subscribe(request):
+    if request.method == 'POST':
+        import json
+        data = json.loads(request.body)
+        endpoint = data.get('endpoint', '')
+        p256dh = data.get('keys', {}).get('p256dh', '')
+        auth = data.get('keys', {}).get('auth', '')
+        if endpoint and p256dh and auth:
+            PushSubscription.objects.update_or_create(
+                endpoint=endpoint,
+                defaults={'user': request.user, 'p256dh': p256dh, 'auth': auth}
+            )
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'error'}, status=400)
 
 @login_required
 def mark_all_read(request):

@@ -1,4 +1,4 @@
-import random, string
+import random, string, json
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import AuditLog, Notification
@@ -17,8 +17,73 @@ def log_action(request, action, object_type='', object_id=None, extra=''):
 
 
 def notify(user, message, link_type='', link_id=None):
-    if user:
-        Notification.objects.create(user=user, message=message, link_type=link_type, link_id=link_id)
+    """Create in-app notification, send email, and send push notification."""
+    if not user:
+        return
+
+    # 1. In-app notification
+    Notification.objects.create(user=user, message=message, link_type=link_type, link_id=link_id)
+
+    # 2. Email notification
+    if user.email:
+        try:
+            url = ''
+            if link_type == 'incident' and link_id:
+                url = f"\n\nView it here: {getattr(settings, 'SITE_URL', 'https://dh-helpdesk.up.railway.app')}/incidents/{link_id}/"
+            send_mail(
+                subject=f"[DHHD] {message}",
+                message=f"{message}{url}\n\n— Digital Health Help Desk",
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@dhhd.app'),
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+
+    # 3. Push notification
+    _send_push(user, message, link_type, link_id)
+
+
+def _send_push(user, message, link_type='', link_id=None):
+    """Send Web Push notification to all user's subscribed devices."""
+    try:
+        from .models import PushSubscription
+        from pywebpush import webpush, WebPushException
+
+        vapid_private_key = getattr(settings, 'VAPID_PRIVATE_KEY', '')
+        vapid_claims = {"sub": f"mailto:{getattr(settings, 'VAPID_ADMIN_EMAIL', 'admin@dhhd.app')}"}
+
+        if not vapid_private_key:
+            return
+
+        url = '/'
+        if link_type == 'incident' and link_id:
+            url = f"/incidents/{link_id}/"
+
+        payload = json.dumps({
+            "title": "DHHD Alert",
+            "body": message,
+            "url": url,
+            "icon": "/static/icons/icon-192.png",
+        })
+
+        subscriptions = PushSubscription.objects.filter(user=user)
+        for sub in subscriptions:
+            try:
+                webpush(
+                    subscription_info={
+                        "endpoint": sub.endpoint,
+                        "keys": {"p256dh": sub.p256dh, "auth": sub.auth},
+                    },
+                    data=payload,
+                    vapid_private_key=vapid_private_key,
+                    vapid_claims=vapid_claims,
+                )
+            except WebPushException as e:
+                if '410' in str(e) or '404' in str(e):
+                    sub.delete()  # Subscription expired
+    except Exception:
+        pass
 
 
 def generate_username(first_name, last_name):
@@ -32,7 +97,6 @@ def generate_username(first_name, last_name):
 
 
 def generate_password(length=8):
-    import random, string
     lower = random.choice(string.ascii_lowercase)
     upper = random.choice(string.ascii_uppercase)
     digit = random.choice(string.digits)

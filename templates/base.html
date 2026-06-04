@@ -110,9 +110,6 @@
       <a href="{% url 'logout' %}" class="nav-item" style="padding:8px 0;border:none;border-radius:6px;">
         <span class="nav-icon"><i class="fa-solid fa-arrow-right-from-bracket"></i></span> Sign Out
       </a>
-      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1);font-size:0.68rem;color:rgba(255,255,255,0.35);line-height:1.6;">
-        &copy; {% now "Y" %} Linetlucy Genchabe
-      </div>
     </div>
   </aside>
 
@@ -150,5 +147,43 @@
 </div>
 <script src="{% static 'js/main.js' %}"></script>
 {% block extra_js %}{% endblock %}
+<script>
+// PWA Push Notification subscription
+const VAPID_PUBLIC_KEY = '{{ VAPID_PUBLIC_KEY }}';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return new Uint8Array([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function subscribeToPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !VAPID_PUBLIC_KEY) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) return; // already subscribed
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+    await fetch('/push/subscribe/', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+      body: JSON.stringify(sub.toJSON()),
+    });
+  } catch (e) { console.log('Push subscription failed:', e); }
+}
+
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.register('/sw.js').then(() => {
+    // Subscribe after a short delay to not interrupt page load
+    setTimeout(subscribeToPush, 3000);
+  });
+}
+</script>
 </body>
 </html>

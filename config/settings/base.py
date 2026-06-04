@@ -75,6 +75,11 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'DHHD <noreply@dhhd.org>')
 
+# ── Push Notifications (VAPID) ─────────────────────────────────────────────
+VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
+VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
+VAPID_ADMIN_EMAIL = os.environ.get('VAPID_ADMIN_EMAIL', 'admin@dhhd.app')
+SITE_URL = os.environ.get('SITE_URL', 'https://dh-helpdesk.up.railway.app')
 
 JAZZMIN_SETTINGS = {
     "site_title": "DHHD Admin",
