@@ -1,4 +1,4 @@
-const CACHE = 'dhhd-v1';
+const CACHE = 'dhhd-v2';
 const OFFLINE = ['/dashboard/', '/static/css/main.css', '/static/js/main.js'];
 
 self.addEventListener('install', e => {
