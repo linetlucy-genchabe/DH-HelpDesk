@@ -57,6 +57,8 @@ urlpatterns = [
     path('notifications/', views.notification_list, name='notification_list'),
     path('notifications/mark-read/', views.mark_all_read, name='mark_all_read'),
 
+    path('push/subscribe/', views.push_subscribe, name='push_subscribe'),
+
     # Audit
     path('audit/', views.audit_log, name='audit_log'),
 
