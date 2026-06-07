@@ -27,16 +27,22 @@ def notify(user, message, link_type='', link_id=None):
     # 2. Email notification
     if user.email:
         try:
+            import threading
             url = ''
             if link_type == 'incident' and link_id:
                 url = f"\n\nView it here: {getattr(settings, 'SITE_URL', 'https://dh-helpdesk.up.railway.app')}/incidents/{link_id}/"
-            send_mail(
-                subject=f"[DHHD] {message}",
-                message=f"{message}{url}\n\n— Digital Health Help Desk",
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@dhhd.app'),
-                recipient_list=[user.email],
-                fail_silently=True,
-            )
+            def send_email():
+                try:
+                    send_mail(
+                        subject=f"[DHHD] {message}",
+                        message=f"{message}{url}\n\n— Digital Health Help Desk",
+                        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@dhhd.app'),
+                        recipient_list=[user.email],
+                        fail_silently=True,
+                    )
+                except Exception:
+                    pass
+            threading.Thread(target=send_email, daemon=True).start()
         except Exception:
             pass
 
