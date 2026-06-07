@@ -47,7 +47,10 @@ def notify(user, message, link_type='', link_id=None):
             pass
 
     # 3. Push notification
-    _send_push(user, message, link_type, link_id)
+    try:
+        _send_push(user, message, link_type, link_id)
+    except Exception:
+        pass
 
 
 def _send_push(user, message, link_type='', link_id=None):
@@ -66,11 +69,14 @@ def _send_push(user, message, link_type='', link_id=None):
         if link_type == 'incident' and link_id:
             url = f"/incidents/{link_id}/"
 
+        unread_count = Notification.objects.filter(user=user, is_read=False).count()
+
         payload = json.dumps({
             "title": "DHHD Alert",
             "body": message,
             "url": url,
             "icon": "/static/icons/icon-192.png",
+            "count": unread_count,
         })
 
         subscriptions = PushSubscription.objects.filter(user=user)
@@ -87,7 +93,7 @@ def _send_push(user, message, link_type='', link_id=None):
                 )
             except WebPushException as e:
                 if '410' in str(e) or '404' in str(e):
-                    sub.delete()  # Subscription expired
+                    sub.delete()
     except Exception:
         pass
 

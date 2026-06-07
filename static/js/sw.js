@@ -22,21 +22,26 @@ self.addEventListener('fetch', e => {
 
 // ── Push notification handler ──────────────────────────────────────────────
 self.addEventListener('push', e => {
-  let data = { title: 'DHHD Alert', body: 'You have a new notification', url: '/notifications/' };
+  let data = { title: 'DHHD Alert', body: 'You have a new notification', url: '/notifications/', count: 1 };
   try { data = { ...data, ...e.data.json() }; } catch (_) {}
   e.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
       icon: '/static/icons/icon-192.png',
       badge: '/static/icons/icon-192.png',
-      data: { url: data.url },
+      data: { url: data.url, count: data.count },
       vibrate: [200, 100, 200],
+      tag: 'dhhd-notification',
+      renotify: true,
+    }).then(() => {
+      if (navigator.setAppBadge) navigator.setAppBadge(data.count);
     })
   );
 });
 
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  if (navigator.clearAppBadge) navigator.clearAppBadge();
   const url = e.notification.data?.url || '/notifications/';
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
