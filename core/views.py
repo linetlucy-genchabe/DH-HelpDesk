@@ -1018,7 +1018,8 @@ def incident_list(request):
 
     # Period quick filters
     from django.utils import timezone
-    today = timezone.now().date()
+    import datetime
+    today = timezone.localtime(timezone.now()).date()
     if period_f == 'today':
         qs = qs.filter(created_at__date=today)
     elif period_f == 'week':
