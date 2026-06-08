@@ -102,6 +102,23 @@
   </select>
   {% endif %}
 
+  <!-- Period quick select -->
+  <select name="period" class="form-control" style="width:auto;" onchange="applyPeriod(this.value)">
+    <option value="">Quick Period</option>
+    <option value="today" {% if period_f == 'today' %}selected{% endif %}>Today</option>
+    <option value="week" {% if period_f == 'week' %}selected{% endif %}>This Week</option>
+    <option value="month" {% if period_f == 'month' %}selected{% endif %}>This Month</option>
+    <option value="last_month" {% if period_f == 'last_month' %}selected{% endif %}>Last Month</option>
+    <option value="custom" {% if date_from or date_to %}selected{% endif %}>Custom Range</option>
+  </select>
+
+  <!-- Custom date range — shown when custom selected -->
+  <div id="dateRange" style="display:{% if date_from or date_to %}flex{% else %}none{% endif %};gap:6px;align-items:center;">
+    <input type="date" name="date_from" class="form-control" style="width:auto;" value="{{ date_from }}" placeholder="From">
+    <span style="color:var(--gray-400);font-size:0.8rem;">to</span>
+    <input type="date" name="date_to" class="form-control" style="width:auto;" value="{{ date_to }}" placeholder="To">
+  </div>
+
   <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
   {% if search or status_f or priority_f or cat_f or county_f or subcounty_f or ward_f or chu_f %}
   <a href="{% url 'incident_list' %}" class="btn btn-ghost btn-sm">Clear</a>
@@ -152,4 +169,20 @@
   </div>
   {% endif %}
 </div>
+
+{% block extra_js %}
+<script>
+function applyPeriod(val) {
+  const dateRange = document.getElementById('dateRange');
+  if (val === 'custom') {
+    dateRange.style.display = 'flex';
+  } else {
+    dateRange.style.display = 'none';
+    document.querySelector('[name=date_from]').value = '';
+    document.querySelector('[name=date_to]').value = '';
+    if (val) document.querySelector('form.filter-bar').submit();
+  }
+}
+</script>
+{% endblock %}
 {% endblock %}

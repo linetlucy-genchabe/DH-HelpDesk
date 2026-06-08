@@ -1003,6 +1003,9 @@ def incident_list(request):
     subcounty_f = request.GET.get('subcounty', '')
     ward_f = request.GET.get('ward', '')
     chu_f = request.GET.get('chu', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    period_f = request.GET.get('period', '')
 
     if status_f: qs = qs.filter(status=status_f)
     if priority_f: qs = qs.filter(priority=priority_f)
@@ -1012,6 +1015,24 @@ def incident_list(request):
     if subcounty_f: qs = qs.filter(chu__ward__subcounty_id=subcounty_f)
     if ward_f: qs = qs.filter(chu__ward_id=ward_f)
     if chu_f: qs = qs.filter(chu_id=chu_f)
+
+    # Period quick filters
+    from django.utils import timezone
+    today = timezone.now().date()
+    if period_f == 'today':
+        qs = qs.filter(created_at__date=today)
+    elif period_f == 'week':
+        week_start = today - timezone.timedelta(days=today.weekday())
+        qs = qs.filter(created_at__date__gte=week_start)
+    elif period_f == 'month':
+        qs = qs.filter(created_at__year=today.year, created_at__month=today.month)
+    elif period_f == 'last_month':
+        last = today.replace(day=1) - timezone.timedelta(days=1)
+        qs = qs.filter(created_at__year=last.year, created_at__month=last.month)
+
+    # Custom date range
+    if date_from: qs = qs.filter(created_at__date__gte=date_from)
+    if date_to: qs = qs.filter(created_at__date__lte=date_to)
 
     # Counts reflect current filters
     counts = {s: qs.filter(status=s).count() for s in ['open', 'in_progress', 'escalated', 'resolved', 'closed']}
@@ -1063,6 +1084,7 @@ def incident_list(request):
         'categories': IncidentCategory.objects.filter(is_active=True),
         'status_f': status_f, 'priority_f': priority_f, 'cat_f': cat_f, 'search': search,
         'county_f': county_f, 'subcounty_f': subcounty_f, 'ward_f': ward_f, 'chu_f': chu_f,
+        'date_from': date_from, 'date_to': date_to, 'period_f': period_f,
         'filter_counties': filter_counties,
         'filter_subcounties': filter_subcounties,
         'filter_wards': filter_wards,
