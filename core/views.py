@@ -767,7 +767,12 @@ def bulk_upload_chps(request):
         if not f:
             messages.error(request, "No file.")
             return render(request, 'credentials/bulk_upload_chp.html', {'type': 'CHP Credentials'})
-        reader = csv.DictReader(io.StringIO(f.read().decode('utf-8')))
+        raw = f.read()
+        try:
+            decoded = raw.decode('utf-8')
+        except UnicodeDecodeError:
+            decoded = raw.decode('latin-1')
+        reader = csv.DictReader(io.StringIO(decoded))
         created, updated, errors = 0, 0, []
         for i, row in enumerate(reader, 2):
             try:
@@ -795,7 +800,7 @@ def bulk_upload_chps(request):
         messages.success(request, f"{created} created, {updated} updated." + (f" Errors: {'; '.join(errors[:5])}" if errors else ""))
         return redirect('chp_list')
     return render(request, 'credentials/bulk_upload_chp.html', {'type': 'CHP Credentials'})
-
+    
 
 @login_required
 def download_chp_template(request):
