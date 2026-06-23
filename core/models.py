@@ -34,7 +34,9 @@ class CHU(models.Model):
     name = models.CharField(max_length=150)
     code = models.CharField(max_length=30, blank=True)
     def __str__(self): return self.name
-    class Meta: verbose_name = "CHU"
+    class Meta:
+        verbose_name = "CHU"
+        ordering = ['name']
 
 
 # ─── USER ─────────────────────────────────────────────────────────────────────
@@ -157,7 +159,7 @@ class CHPProfile(models.Model):
     notes = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     # eCHIS credentials stored directly — CHPs only use eCHIS
-    echis_username = models.CharField(max_length=150, blank=True)
+    echis_username = models.CharField(max_length=150, blank=True, unique=True)
     echis_password = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -175,13 +177,13 @@ class CHAProfile(models.Model):
     notes = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     # eCHIS
-    echis_username = models.CharField(max_length=150, blank=True)
+    echis_username = models.CharField(max_length=150, blank=True, unique=True)
     echis_password = models.CharField(max_length=255, blank=True)
     # Dashboard (formerly Dashboard + Power BI)
-    dashboard_username = models.CharField(max_length=150, blank=True)
+    dashboard_username = models.CharField(max_length=150, blank=True, unique=True)
     dashboard_password = models.CharField(max_length=255, blank=True)
     # Registry
-    registry_username = models.CharField(max_length=150, blank=True)
+    registry_username = models.CharField(max_length=150, blank=True, unique=True)
     registry_password = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1433,7 +1433,12 @@ def upload_geography(request):
             messages.error(request, "No file uploaded.")
             return render(request, 'admin_tools/upload_geography.html')
 
-        reader = csv.DictReader(io.StringIO(f.read().decode('utf-8')))
+        raw = f.read()
+        try:
+            decoded = raw.decode('utf-8')
+        except UnicodeDecodeError:
+            decoded = raw.decode('latin-1')
+        reader = csv.DictReader(io.StringIO(decoded))
         created = {'county': 0, 'subcounty': 0, 'ward': 0, 'chu': 0}
         updated = {'county': 0, 'subcounty': 0, 'ward': 0, 'chu': 0}
         errors = []
@@ -1452,29 +1457,24 @@ def upload_geography(request):
                     errors.append(f"Row {i}: Missing required fields (county, subcounty, ward, chu_name)")
                     continue
 
-                county, c = County.objects.get_or_create(
-                    name__iexact=county_name, country=country,
-                    defaults={'name': county_name}
-                )
-                if c: created['county'] += 1
+                county = County.objects.filter(name__iexact=county_name, country=country).first()
+                if not county:
+                    county = County.objects.create(name=county_name, country=country)
+                    created['county'] += 1
 
-                subcounty, c = SubCounty.objects.get_or_create(
-                    name__iexact=subcounty_name, county=county,
-                    defaults={'name': subcounty_name}
-                )
-                if c: created['subcounty'] += 1
+                subcounty = SubCounty.objects.filter(name__iexact=subcounty_name, county=county).first()
+                if not subcounty:
+                    subcounty = SubCounty.objects.create(name=subcounty_name, county=county)
+                    created['subcounty'] += 1
 
-                ward, c = Ward.objects.get_or_create(
-                    name__iexact=ward_name, subcounty=subcounty,
-                    defaults={'name': ward_name}
-                )
-                if c: created['ward'] += 1
+                ward = Ward.objects.filter(name__iexact=ward_name, subcounty=subcounty).first()
+                if not ward:
+                    ward = Ward.objects.create(name=ward_name, subcounty=subcounty)
+                    created['ward'] += 1
 
-                chu, c = CHU.objects.get_or_create(
-                    name__iexact=chu_name, ward=ward,
-                    defaults={'name': chu_name, 'code': chu_code}
-                )
-                if c:
+                chu = CHU.objects.filter(name__iexact=chu_name, ward=ward).first()
+                if not chu:
+                    chu = CHU.objects.create(name=chu_name, ward=ward, code=chu_code)
                     created['chu'] += 1
                 else:
                     if chu_code and not chu.code:
