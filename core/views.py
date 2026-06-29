@@ -786,11 +786,15 @@ def bulk_upload_chps(request):
                 if not chu:
                     raise ValueError(f"CHU '{chu_name}' not found")
                 name = row.get('chp_name', '').strip()
-                chp, was_created = CHPProfile.objects.get_or_create(name__iexact=name, chu=chu,
-                    defaults={'name': name, 'chu': chu})
+                chp = CHPProfile.objects.filter(name__iexact=name, chu=chu).first()
+                if chp:
+                    was_created = False
+                else:
+                    chp = CHPProfile(name=name, chu=chu)
+                    was_created = True
                 chp.echis_username = row.get('echis_username', '').strip()
                 chp.echis_password = row.get('echis_password', '').strip()
-                chp.phone = row.get('phone', chp.phone).strip()
+                chp.phone = row.get('phone', chp.phone or '').strip()
                 chp.updated_by = request.user
                 chp.save()
                 if was_created: created += 1
@@ -801,7 +805,6 @@ def bulk_upload_chps(request):
         messages.success(request, f"{created} created, {updated} updated." + (f" Errors: {'; '.join(errors[:5])}" if errors else ""))
         return redirect('chp_list')
     return render(request, 'credentials/bulk_upload_chp.html', {'type': 'CHP Credentials'})
-    
 
 @login_required
 def download_chp_template(request):
