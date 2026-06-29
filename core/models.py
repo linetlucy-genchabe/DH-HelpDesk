@@ -301,3 +301,113 @@ class AuditLog(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     extra = models.TextField(blank=True)
     class Meta: ordering = ['-timestamp']
+
+# ─── RESOURCES ────────────────────────────────────────────────────────────────
+
+class AppLink(models.Model):
+    name = models.CharField(max_length=150)
+    description = models.CharField(max_length=300, blank=True)
+    url = models.URLField()
+    logo = models.ImageField(upload_to='app_links/', null=True, blank=True)
+    county = models.ForeignKey(County, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='app_links', help_text="Leave blank for links visible to all counties")
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self): return self.name
+    class Meta: ordering = ['order', 'name']
+
+
+class ArticleCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.CharField(max_length=300, blank=True)
+    order = models.PositiveIntegerField(default=0)
+
+    def __str__(self): return self.name
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name_plural = "Article Categories"
+
+
+class Article(models.Model):
+    title = models.CharField(max_length=200)
+    category = models.ForeignKey(ArticleCategory, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='articles')
+    content = models.TextField(help_text="HTML content")
+    cover_image = models.ImageField(upload_to='articles/', null=True, blank=True)
+    video_url = models.URLField(blank=True, help_text="YouTube or MP4 link")
+    is_published = models.BooleanField(default=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self): return self.title
+    class Meta: ordering = ['-created_at']
+
+
+class WorkPlanSubmission(models.Model):
+    STATUS = [('draft', 'Draft'), ('submitted', 'Submitted'), ('reviewed', 'Reviewed')]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='workplans')
+    chu = models.ForeignKey(CHU, on_delete=models.SET_NULL, null=True, blank=True, related_name='workplans')
+    week_start = models.DateField(help_text="Monday of the week")
+    week_end = models.DateField(help_text="Friday of the week")
+    status = models.CharField(max_length=20, choices=STATUS, default='draft')
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='reviewed_workplans')
+    review_comment = models.TextField(blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self): return f"{self.user.get_full_name()} — Week of {self.week_start}"
+
+    @property
+    def week_label(self):
+        return f"{self.week_start.strftime('%d %b')} – {self.week_end.strftime('%d %b %Y')}"
+
+    class Meta:
+        ordering = ['-week_start']
+        unique_together = [['user', 'week_start']]
+
+
+class WorkPlanDay(models.Model):
+    DAY_CHOICES = [
+        ('monday', 'Monday'), ('tuesday', 'Tuesday'), ('wednesday', 'Wednesday'),
+        ('thursday', 'Thursday'), ('friday', 'Friday'),
+    ]
+    workplan = models.ForeignKey(WorkPlanSubmission, on_delete=models.CASCADE, related_name='days')
+    day = models.CharField(max_length=10, choices=DAY_CHOICES)
+    objective = models.TextField(blank=True)
+    activity = models.TextField(blank=True)
+    expected_output = models.TextField(blank=True)
+    actual_results = models.TextField(blank=True)
+    challenges = models.TextField(blank=True)
+    next_steps = models.TextField(blank=True)
+
+    class Meta: ordering = ['id']
+    def __str__(self): return f"{self.workplan} — {self.day}"
+
+
+class WorkPlanSummary(models.Model):
+    workplan = models.OneToOneField(WorkPlanSubmission, on_delete=models.CASCADE, related_name='summary')
+    lesson_1 = models.TextField(blank=True)
+    lesson_2 = models.TextField(blank=True)
+    lesson_3 = models.TextField(blank=True)
+    challenge_1 = models.TextField(blank=True)
+    challenge_2 = models.TextField(blank=True)
+    recommended_action = models.TextField(blank=True)
+    priority_1_objective = models.TextField(blank=True)
+    priority_1_activity = models.TextField(blank=True)
+    priority_1_output = models.TextField(blank=True)
+    priority_2_objective = models.TextField(blank=True)
+    priority_2_activity = models.TextField(blank=True)
+    priority_2_output = models.TextField(blank=True)
+    priority_3_objective = models.TextField(blank=True)
+    priority_3_activity = models.TextField(blank=True)
+    priority_3_output = models.TextField(blank=True)
+
+    def __str__(self): return f"Summary — {self.workplan}"

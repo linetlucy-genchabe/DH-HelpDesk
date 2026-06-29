@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block topbar_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Weekly Work Plan</div>
+    <div class="page-subtitle" style="font-weight:700;color:var(--lg-blue);">{{ week_label }}</div>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'workplan_list' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+
+  <!-- THIS WEEK REPORT -->
+  <div class="card" style="margin-bottom:24px;">
+    <div class="card-header" style="background:var(--lg-blue);border-radius:var(--radius) var(--radius) 0 0;">
+      <span class="card-title" style="color:white;font-size:0.95rem;">
+        <i class="fa-solid fa-calendar-week" style="margin-right:8px;"></i>
+        CHO REPORT FOR THIS WEEK — {{ week_label }}
+      </span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-container">
+        <table style="table-layout:fixed;">
+          <colgroup>
+            <col style="width:90px;">
+            <col style="width:160px;">
+            <col style="width:180px;">
+            <col style="width:160px;">
+            <col style="width:160px;">
+            <col style="width:140px;">
+            <col style="width:160px;">
+          </colgroup>
+          <thead>
+            <tr style="background:var(--lg-blue-light);">
+              <th style="font-size:0.75rem;">Day</th>
+              <th style="font-size:0.75rem;">Objective</th>
+              <th style="font-size:0.75rem;">Activity</th>
+              <th style="font-size:0.75rem;">Expected Output</th>
+              <th style="font-size:0.75rem;">Actual Results</th>
+              <th style="font-size:0.75rem;">Challenges</th>
+              <th style="font-size:0.75rem;">Next Steps / Follow-up</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for day in days %}
+            {% with day_data=days_data|default:None %}
+            {% with d=days_data|default_if_none:None %}
+            <tr style="background:{% cycle 'var(--gray-50)' 'white' %};">
+              <td style="font-weight:800;color:var(--lg-blue);font-size:0.78rem;text-transform:uppercase;vertical-align:top;padding-top:12px;">
+                {{ day|title }}
+              </td>
+              {% for field in 'objective,activity,expected_output,actual_results,challenges,next_steps'|split:',' %}
+              <td style="padding:4px;">
+                <textarea name="{{ day }}_{{ field }}" class="form-control" rows="3" style="font-size:0.78rem;resize:vertical;min-height:60px;">{% if days_data %}{% with val=days_data|get_item:day %}{% if val %}{{ val|get_attr:field }}{% endif %}{% endwith %}{% endif %}</textarea>
+              </td>
+              {% endfor %}
+            </tr>
+            {% endwith %}
+            {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- LESSONS & CHALLENGES -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+    <div class="card">
+      <div class="card-header" style="background:var(--success-light);">
+        <span class="card-title" style="color:var(--success);">Lessons Learnt This Week</span>
+      </div>
+      <div class="card-body">
+        {% for n in '123' %}
+        <div class="form-group">
+          <label class="form-label">Lesson {{ n }}</label>
+          <textarea name="lesson_{{ n }}" class="form-control" rows="2">{% if summary %}{% if n == '1' %}{{ summary.lesson_1 }}{% elif n == '2' %}{{ summary.lesson_2 }}{% else %}{{ summary.lesson_3 }}{% endif %}{% endif %}</textarea>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header" style="background:var(--danger-light);">
+        <span class="card-title" style="color:var(--danger);">Persistent Challenges for Escalation</span>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Challenge 1</label>
+          <textarea name="challenge_1" class="form-control" rows="2">{{ summary.challenge_1|default:'' }}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Challenge 2</label>
+          <textarea name="challenge_2" class="form-control" rows="2">{{ summary.challenge_2|default:'' }}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Recommended Action</label>
+          <textarea name="recommended_action" class="form-control" rows="2">{{ summary.recommended_action|default:'' }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEXT WEEK PRIORITIES -->
+  <div class="card" style="margin-bottom:24px;">
+    <div class="card-header" style="background:var(--lg-orange-light);">
+      <span class="card-title" style="color:var(--lg-orange);">
+        <i class="fa-solid fa-forward" style="margin-right:8px;"></i>
+        Next Week's Priorities
+      </span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-container">
+        <table style="table-layout:fixed;">
+          <colgroup>
+            <col style="width:100px;">
+            <col><col><col>
+          </colgroup>
+          <thead>
+            <tr style="background:var(--lg-orange-light);">
+              <th style="font-size:0.75rem;">Priority</th>
+              <th style="font-size:0.75rem;">Objective</th>
+              <th style="font-size:0.75rem;">Activity</th>
+              <th style="font-size:0.75rem;">Expected Output</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for n in '123' %}
+            <tr>
+              <td style="font-weight:800;color:var(--lg-orange);font-size:0.82rem;vertical-align:top;padding-top:12px;">Priority {{ n }}</td>
+              <td style="padding:4px;"><textarea name="priority_{{ n }}_objective" class="form-control" rows="3" style="font-size:0.78rem;">{% if summary %}{% if n == '1' %}{{ summary.priority_1_objective }}{% elif n == '2' %}{{ summary.priority_2_objective }}{% else %}{{ summary.priority_3_objective }}{% endif %}{% endif %}</textarea></td>
+              <td style="padding:4px;"><textarea name="priority_{{ n }}_activity" class="form-control" rows="3" style="font-size:0.78rem;">{% if summary %}{% if n == '1' %}{{ summary.priority_1_activity }}{% elif n == '2' %}{{ summary.priority_2_activity }}{% else %}{{ summary.priority_3_activity }}{% endif %}{% endif %}</textarea></td>
+              <td style="padding:4px;"><textarea name="priority_{{ n }}_output" class="form-control" rows="3" style="font-size:0.78rem;">{% if summary %}{% if n == '1' %}{{ summary.priority_1_output }}{% elif n == '2' %}{{ summary.priority_2_output }}{% else %}{{ summary.priority_3_output }}{% endif %}{% endif %}</textarea></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-3">
+    <button type="submit" name="action" value="save" class="btn btn-outline">
+      <i class="fa-solid fa-floppy-disk"></i> Save Draft
+    </button>
+    <button type="submit" name="action" value="submit" class="btn btn-orange">
+      <i class="fa-solid fa-paper-plane"></i> Submit Work Plan
+    </button>
+    <a href="{% url 'workplan_list' %}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

@@ -77,4 +77,23 @@ urlpatterns = [
     path('credentials/chp/export/', views.export_chps, name='export_chps'),
     path('credentials/cha/export/', views.export_chas, name='export_chas'),
     path('incidents/export/', views.export_incidents, name='export_incidents'),
+
+    # Resources — App Links
+    path('resources/apps/', views.app_links, name='app_links'),
+    path('resources/apps/create/', views.app_link_create, name='app_link_create'),
+    path('resources/apps/<int:pk>/edit/', views.app_link_edit, name='app_link_edit'),
+    path('resources/apps/<int:pk>/delete/', views.app_link_delete, name='app_link_delete'),
+
+    # Resources — Articles
+    path('resources/articles/', views.article_list, name='article_list'),
+    path('resources/articles/create/', views.article_create, name='article_create'),
+    path('resources/articles/<int:pk>/', views.article_detail, name='article_detail'),
+    path('resources/articles/<int:pk>/edit/', views.article_edit, name='article_edit'),
+    path('resources/articles/categories/', views.article_category_list, name='article_categories'),
+
+    # Resources — Work Plans
+    path('resources/workplans/', views.workplan_list, name='workplan_list'),
+    path('resources/workplans/create/', views.workplan_create, name='workplan_create'),
+    path('resources/workplans/<int:pk>/', views.workplan_detail, name='workplan_detail'),
+    path('resources/workplans/<int:pk>/edit/', views.workplan_edit, name='workplan_edit'),
 ]

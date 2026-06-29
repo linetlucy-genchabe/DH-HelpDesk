@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}App Links{% endblock %}
+{% block topbar_title %}App Links & Resources{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">App Links</div>
+    <div class="page-subtitle">Quick access to all systems and tools</div>
+  </div>
+  <div class="page-header-actions">
+    {% if request.user.is_superuser_or_tech %}
+    <a href="{% url 'app_link_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Link</a>
+    {% endif %}
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;">
+  {% for link in links %}
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:24px;display:flex;flex-direction:column;gap:16px;height:100%;">
+      <div style="display:flex;align-items:center;gap:16px;">
+        {% if link.logo %}
+        <img src="{{ link.logo.url }}" alt="{{ link.name }}" style="width:52px;height:52px;object-fit:contain;border-radius:10px;border:1px solid var(--gray-100);padding:4px;">
+        {% else %}
+        <div style="width:52px;height:52px;background:var(--lg-blue-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+          <i class="fa-solid fa-link" style="color:var(--lg-blue);font-size:1.2rem;"></i>
+        </div>
+        {% endif %}
+        <div>
+          <div style="font-weight:800;font-size:0.95rem;color:var(--gray-900);">{{ link.name }}</div>
+          {% if link.county %}<div style="font-size:0.72rem;color:var(--gray-400);margin-top:2px;">{{ link.county.name }}</div>{% endif %}
+        </div>
+      </div>
+      {% if link.description %}
+      <div style="font-size:0.82rem;color:var(--gray-500);flex:1;">{{ link.description }}</div>
+      {% endif %}
+      <div style="display:flex;gap:8px;margin-top:auto;">
+        <a href="{{ link.url }}" target="_blank" class="btn btn-primary btn-sm" style="flex:1;justify-content:center;">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> Open
+        </a>
+        {% if request.user.is_superuser_or_tech %}
+        <a href="{% url 'app_link_edit' link.pk %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i></a>
+        <form method="post" action="{% url 'app_link_delete' link.pk %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger btn-sm" data-confirm="Delete {{ link.name }}?"><i class="fa-solid fa-trash"></i></button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-state" style="grid-column:1/-1;">
+    <div class="empty-icon"><i class="fa-solid fa-link"></i></div>
+    <div class="empty-title">No app links yet</div>
+    {% if request.user.is_superuser_or_tech %}
+    <a href="{% url 'app_link_create' %}" class="btn btn-primary btn-sm" style="margin-top:16px;">Add First Link</a>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

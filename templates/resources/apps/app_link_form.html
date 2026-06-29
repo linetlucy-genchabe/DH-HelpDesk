@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block topbar_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><div class="page-title">{{ title }}</div></div>
+  <div class="page-header-actions">
+    <a href="{% url 'app_links' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+  </div>
+</div>
+
+<div class="card" style="max-width:600px;">
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-group span-2">
+          <label class="form-label req">App / System Name</label>
+          <input type="text" name="name" class="form-control" value="{{ obj.name|default:'' }}" required placeholder="e.g. Kisumu eCHIS">
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label req">URL</label>
+          <input type="url" name="url" class="form-control" value="{{ obj.url|default:'' }}" required placeholder="https://...">
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">Description</label>
+          <input type="text" name="description" class="form-control" value="{{ obj.description|default:'' }}" placeholder="Short description shown on the card">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Logo</label>
+          <input type="file" name="logo" class="form-control" accept="image/*">
+          {% if obj and obj.logo %}<div style="margin-top:6px;"><img src="{{ obj.logo.url }}" style="height:40px;object-fit:contain;"></div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">County <span class="form-hint">(leave blank = all counties)</span></label>
+          <select name="county" class="form-control">
+            <option value="">— All Counties —</option>
+            {% for c in counties %}<option value="{{ c.pk }}" {% if obj and obj.county_id == c.pk %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Display Order</label>
+          <input type="number" name="order" class="form-control" value="{{ obj.order|default:0 }}" min="0">
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:28px;">
+            <input type="checkbox" name="is_active" {% if not obj or obj.is_active %}checked{% endif %}> Active
+          </label>
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="d-flex gap-3">
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+        <a href="{% url 'app_links' %}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

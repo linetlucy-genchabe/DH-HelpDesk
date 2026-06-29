@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Work Plans{% endblock %}
+{% block topbar_title %}Weekly Work Plans{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Weekly Work Plans</div>
+    <div class="page-subtitle">{{ request.user.get_scope_label }}</div>
+  </div>
+  <div class="page-header-actions">
+    {% if request.user.role == 'cha' %}
+      {% if current_week_submitted %}
+        <a href="{% url 'workplan_detail' current_week_submitted.pk %}" class="btn btn-outline btn-sm">
+          <i class="fa-solid fa-eye"></i> This Week's Plan
+        </a>
+      {% else %}
+        <a href="{% url 'workplan_create' %}" class="btn btn-orange">
+          <i class="fa-solid fa-plus"></i> Fill This Week's Plan
+        </a>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+{% if request.user.role == 'cha' and not current_week_submitted %}
+<div class="alert alert-warning" style="margin-bottom:20px;">
+  <i class="fa-solid fa-triangle-exclamation"></i>
+  You haven't submitted your work plan for <strong>{{ current_week_label }}</strong> yet.
+  <a href="{% url 'workplan_create' %}" style="color:inherit;font-weight:700;margin-left:8px;">Fill it now →</a>
+</div>
+{% endif %}
+
+<div class="card">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--gray-100);display:flex;gap:12px;align-items:center;">
+    <form method="get" style="display:flex;gap:8px;">
+      <select name="status" class="form-control" style="width:auto;" onchange="this.form.submit()">
+        <option value="">All Status</option>
+        <option value="draft" {% if status_f == 'draft' %}selected{% endif %}>Draft</option>
+        <option value="submitted" {% if status_f == 'submitted' %}selected{% endif %}>Submitted</option>
+        <option value="reviewed" {% if status_f == 'reviewed' %}selected{% endif %}>Reviewed</option>
+      </select>
+    </form>
+  </div>
+  {% if workplans %}
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Week</th>
+          {% if request.user.role != 'cha' %}<th>Submitted By</th><th>CHU</th>{% endif %}
+          <th>Status</th><th>Submitted</th><th>Reviewed By</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for wp in workplans %}
+        <tr>
+          <td style="font-weight:700;font-size:0.85rem;">{{ wp.week_label }}</td>
+          {% if request.user.role != 'cha' %}
+          <td>{{ wp.user.get_full_name }}</td>
+          <td style="font-size:0.78rem;color:var(--gray-500);">{{ wp.chu.name|default:"—" }}</td>
+          {% endif %}
+          <td>
+            {% if wp.status == 'draft' %}<span class="badge badge-secondary">Draft</span>
+            {% elif wp.status == 'submitted' %}<span class="badge badge-warning">Submitted</span>
+            {% else %}<span class="badge badge-success">Reviewed</span>{% endif %}
+          </td>
+          <td style="font-size:0.78rem;color:var(--gray-500);">{{ wp.submitted_at|date:"M d, Y"|default:"—" }}</td>
+          <td style="font-size:0.78rem;color:var(--gray-500);">{{ wp.reviewed_by.get_full_name|default:"—" }}</td>
+          <td><a href="{% url 'workplan_detail' wp.pk %}" class="btn btn-outline btn-xs">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon"><i class="fa-solid fa-clipboard-list"></i></div>
+    <div class="empty-title">No work plans yet</div>
+    {% if request.user.role == 'cha' %}
+    <a href="{% url 'workplan_create' %}" class="btn btn-orange btn-sm" style="margin-top:16px;">Fill This Week's Plan</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

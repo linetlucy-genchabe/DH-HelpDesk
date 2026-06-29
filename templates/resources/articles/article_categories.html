@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Article Categories{% endblock %}
+{% block topbar_title %}Article Categories{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><div class="page-title">Article Categories</div></div>
+  <div class="page-header-actions">
+    <a href="{% url 'article_list' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+  </div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:800px;align-items:start;">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Add Category</span></div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label req">Name</label>
+          <input type="text" name="name" class="form-control" required placeholder="e.g. eCHIS Guides">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input type="text" name="description" class="form-control" placeholder="Short description">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Order</label>
+          <input type="number" name="order" class="form-control" value="0" min="0">
+        </div>
+        <button type="submit" class="btn btn-primary">Add Category</button>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Existing Categories</span></div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Name</th><th>Articles</th><th>Order</th></tr></thead>
+        <tbody>
+          {% for cat in categories %}
+          <tr>
+            <td style="font-weight:600;">{{ cat.name }}</td>
+            <td>{{ cat.articles.count }}</td>
+            <td>{{ cat.order }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" style="text-align:center;color:var(--gray-400);padding:20px;">No categories yet</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

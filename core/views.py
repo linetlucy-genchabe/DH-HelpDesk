@@ -10,7 +10,8 @@ from .models import (
     User, Country, County, SubCounty, Ward, CHU,
     Device, CHPProfile, CHAProfile, StoredCredential, SYSTEM_CHOICES,
     Incident, IncidentCategory, IncidentUpdate,
-    Notification, PushSubscription, AuditLog,
+    Notification, PushSubscription, AuditLog,AppLink, ArticleCategory, Article,
+    WorkPlanSubmission, WorkPlanDay, WorkPlanSummary,
 )
 from .utils import log_action, notify, generate_username, generate_password
 
@@ -1623,3 +1624,353 @@ def export_incidents(request):
             inc.description,
         ])
     return response
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# RESOURCES — APP LINKS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+def app_links(request):
+    user = request.user
+    if user.role in ('superuser', 'tech_team', 'country'):
+        links = AppLink.objects.filter(is_active=True)
+    elif user.county:
+        links = AppLink.objects.filter(is_active=True).filter(
+            Q(county__isnull=True) | Q(county=user.county)
+        )
+    else:
+        links = AppLink.objects.filter(is_active=True, county__isnull=True)
+    return render(request, 'resources/app_links.html', {'links': links})
+
+
+@login_required
+def app_link_create(request):
+    if not request.user.is_superuser_or_tech:
+        messages.error(request, "Access denied."); return redirect('app_links')
+    if request.method == 'POST':
+        logo = request.FILES.get('logo') or None
+        AppLink.objects.create(
+            name=request.POST.get('name', '').strip(),
+            description=request.POST.get('description', '').strip(),
+            url=request.POST.get('url', '').strip(),
+            logo=logo,
+            county_id=request.POST.get('county') or None,
+            order=request.POST.get('order', 0),
+            is_active='is_active' in request.POST,
+        )
+        messages.success(request, "App link added.")
+        return redirect('app_links')
+    return render(request, 'resources/app_link_form.html', {
+        'title': 'Add App Link',
+        'counties': County.objects.all(),
+    })
+
+
+@login_required
+def app_link_edit(request, pk):
+    if not request.user.is_superuser_or_tech:
+        messages.error(request, "Access denied."); return redirect('app_links')
+    link = get_object_or_404(AppLink, pk=pk)
+    if request.method == 'POST':
+        link.name = request.POST.get('name', link.name)
+        link.description = request.POST.get('description', link.description)
+        link.url = request.POST.get('url', link.url)
+        link.county_id = request.POST.get('county') or None
+        link.order = request.POST.get('order', link.order)
+        link.is_active = 'is_active' in request.POST
+        if request.FILES.get('logo'):
+            link.logo = request.FILES['logo']
+        link.save()
+        messages.success(request, "App link updated.")
+        return redirect('app_links')
+    return render(request, 'resources/app_link_form.html', {
+        'title': 'Edit App Link', 'obj': link,
+        'counties': County.objects.all(),
+    })
+
+
+@login_required
+def app_link_delete(request, pk):
+    if not request.user.is_superuser_or_tech:
+        messages.error(request, "Access denied."); return redirect('app_links')
+    link = get_object_or_404(AppLink, pk=pk)
+    if request.method == 'POST':
+        link.delete()
+        messages.success(request, "App link deleted.")
+    return redirect('app_links')
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# RESOURCES — ARTICLES
+# ══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+def article_list(request):
+    search = request.GET.get('q', '')
+    cat_f = request.GET.get('category', '')
+    qs = Article.objects.filter(is_published=True).select_related('category', 'created_by')
+    if search: qs = qs.filter(Q(title__icontains=search) | Q(content__icontains=search))
+    if cat_f: qs = qs.filter(category_id=cat_f)
+    return render(request, 'resources/article_list.html', {
+        'articles': qs,
+        'categories': ArticleCategory.objects.all(),
+        'search': search,
+        'cat_f': cat_f,
+    })
+
+
+@login_required
+def article_detail(request, pk):
+    article = get_object_or_404(Article, pk=pk, is_published=True)
+    return render(request, 'resources/article_detail.html', {'article': article})
+
+
+@login_required
+def article_create(request):
+    if not request.user.is_superuser_or_tech:
+        messages.error(request, "Access denied."); return redirect('article_list')
+    if request.method == 'POST':
+        cat_id = request.POST.get('category') or None
+        Article.objects.create(
+            title=request.POST.get('title', '').strip(),
+            category_id=cat_id,
+            content=request.POST.get('content', '').strip(),
+            video_url=request.POST.get('video_url', '').strip(),
+            cover_image=request.FILES.get('cover_image') or None,
+            is_published='is_published' in request.POST,
+            created_by=request.user,
+        )
+        messages.success(request, "Article created.")
+        return redirect('article_list')
+    return render(request, 'resources/article_form.html', {
+        'title': 'New Article',
+        'categories': ArticleCategory.objects.all(),
+    })
+
+
+@login_required
+def article_edit(request, pk):
+    if not request.user.is_superuser_or_tech:
+        messages.error(request, "Access denied."); return redirect('article_list')
+    article = get_object_or_404(Article, pk=pk)
+    if request.method == 'POST':
+        article.title = request.POST.get('title', article.title)
+        article.category_id = request.POST.get('category') or None
+        article.content = request.POST.get('content', article.content)
+        article.video_url = request.POST.get('video_url', article.video_url)
+        article.is_published = 'is_published' in request.POST
+        if request.FILES.get('cover_image'):
+            article.cover_image = request.FILES['cover_image']
+        article.save()
+        messages.success(request, "Article updated.")
+        return redirect('article_detail', pk=pk)
+    return render(request, 'resources/article_form.html', {
+        'title': 'Edit Article', 'obj': article,
+        'categories': ArticleCategory.objects.all(),
+    })
+
+
+@login_required
+def article_category_list(request):
+    if not request.user.is_superuser_or_tech:
+        messages.error(request, "Access denied."); return redirect('article_list')
+    if request.method == 'POST':
+        ArticleCategory.objects.create(
+            name=request.POST.get('name', '').strip(),
+            description=request.POST.get('description', '').strip(),
+            order=request.POST.get('order', 0),
+        )
+        messages.success(request, "Category created.")
+    return render(request, 'resources/article_categories.html', {
+        'categories': ArticleCategory.objects.all(),
+    })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# RESOURCES — WORK PLANS
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _workplan_scope(user):
+    if user.role in ('superuser', 'tech_team'):
+        return WorkPlanSubmission.objects.all()
+    elif user.role == 'country':
+        return WorkPlanSubmission.objects.filter(
+            chu__ward__subcounty__county__country=user.country)
+    elif user.role == 'county':
+        return WorkPlanSubmission.objects.filter(
+            chu__ward__subcounty__county=user.county)
+    elif user.role == 'subcounty':
+        return WorkPlanSubmission.objects.filter(
+            chu__ward__subcounty=user.subcounty)
+    elif user.role == 'cha':
+        return WorkPlanSubmission.objects.filter(user=user)
+    return WorkPlanSubmission.objects.none()
+
+
+@login_required
+def workplan_list(request):
+    from django.utils import timezone
+    qs = _workplan_scope(request.user).select_related('user', 'chu__ward__subcounty')
+    status_f = request.GET.get('status', '')
+    if status_f: qs = qs.filter(status=status_f)
+    today = timezone.localtime(timezone.now()).date()
+    # Current week Monday
+    monday = today - timezone.timedelta(days=today.weekday())
+    friday = monday + timezone.timedelta(days=4)
+    # Check if current user (CHA) has submitted this week
+    current_week_submitted = None
+    if request.user.role == 'cha':
+        current_week_submitted = WorkPlanSubmission.objects.filter(
+            user=request.user, week_start=monday).first()
+    return render(request, 'resources/workplan_list.html', {
+        'workplans': qs.order_by('-week_start'),
+        'status_f': status_f,
+        'current_week_submitted': current_week_submitted,
+        'current_week_label': f"{monday.strftime('%d %b')} – {friday.strftime('%d %b %Y')}",
+        'monday': monday,
+        'friday': friday,
+    })
+
+
+@login_required
+def workplan_create(request):
+    from django.utils import timezone
+    today = timezone.localtime(timezone.now()).date()
+    monday = today - timezone.timedelta(days=today.weekday())
+    friday = monday + timezone.timedelta(days=4)
+    # Check for existing submission this week
+    existing = WorkPlanSubmission.objects.filter(user=request.user, week_start=monday).first()
+    if existing:
+        return redirect('workplan_edit', pk=existing.pk)
+    DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+    if request.method == 'POST':
+        wp = WorkPlanSubmission.objects.create(
+            user=request.user,
+            chu=request.user.chus.first() if request.user.role == 'cha' else None,
+            week_start=monday,
+            week_end=friday,
+            status='draft',
+        )
+        for day in DAYS:
+            WorkPlanDay.objects.create(
+                workplan=wp, day=day,
+                objective=request.POST.get(f'{day}_objective', ''),
+                activity=request.POST.get(f'{day}_activity', ''),
+                expected_output=request.POST.get(f'{day}_expected_output', ''),
+                actual_results=request.POST.get(f'{day}_actual_results', ''),
+                challenges=request.POST.get(f'{day}_challenges', ''),
+                next_steps=request.POST.get(f'{day}_next_steps', ''),
+            )
+        WorkPlanSummary.objects.create(
+            workplan=wp,
+            lesson_1=request.POST.get('lesson_1', ''),
+            lesson_2=request.POST.get('lesson_2', ''),
+            lesson_3=request.POST.get('lesson_3', ''),
+            challenge_1=request.POST.get('challenge_1', ''),
+            challenge_2=request.POST.get('challenge_2', ''),
+            recommended_action=request.POST.get('recommended_action', ''),
+            priority_1_objective=request.POST.get('priority_1_objective', ''),
+            priority_1_activity=request.POST.get('priority_1_activity', ''),
+            priority_1_output=request.POST.get('priority_1_output', ''),
+            priority_2_objective=request.POST.get('priority_2_objective', ''),
+            priority_2_activity=request.POST.get('priority_2_activity', ''),
+            priority_2_output=request.POST.get('priority_2_output', ''),
+            priority_3_objective=request.POST.get('priority_3_objective', ''),
+            priority_3_activity=request.POST.get('priority_3_activity', ''),
+            priority_3_output=request.POST.get('priority_3_output', ''),
+        )
+        action = request.POST.get('action', 'save')
+        if action == 'submit':
+            wp.status = 'submitted'
+            wp.submitted_at = timezone.now()
+            wp.save()
+            messages.success(request, f"Work plan submitted for {wp.week_label}.")
+        else:
+            messages.success(request, "Work plan saved as draft.")
+        return redirect('workplan_detail', pk=wp.pk)
+    return render(request, 'resources/workplan_form.html', {
+        'title': f"Work Plan — {monday.strftime('%d %b')} – {friday.strftime('%d %b %Y')}",
+        'week_label': f"{monday.strftime('%d %b')} – {friday.strftime('%d %b %Y')}",
+        'days': DAYS,
+        'obj': None,
+    })
+
+
+@login_required
+def workplan_edit(request, pk):
+    from django.utils import timezone
+    wp = get_object_or_404(WorkPlanSubmission, pk=pk)
+    if wp.user != request.user and not request.user.is_superuser_or_tech:
+        messages.error(request, "Access denied."); return redirect('workplan_list')
+    if wp.status == 'reviewed' and not request.user.is_superuser_or_tech:
+        messages.error(request, "Reviewed work plans cannot be edited."); return redirect('workplan_detail', pk=pk)
+    DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+    if request.method == 'POST':
+        for day in DAYS:
+            day_obj, _ = WorkPlanDay.objects.get_or_create(workplan=wp, day=day)
+            day_obj.objective = request.POST.get(f'{day}_objective', '')
+            day_obj.activity = request.POST.get(f'{day}_activity', '')
+            day_obj.expected_output = request.POST.get(f'{day}_expected_output', '')
+            day_obj.actual_results = request.POST.get(f'{day}_actual_results', '')
+            day_obj.challenges = request.POST.get(f'{day}_challenges', '')
+            day_obj.next_steps = request.POST.get(f'{day}_next_steps', '')
+            day_obj.save()
+        summary, _ = WorkPlanSummary.objects.get_or_create(workplan=wp)
+        for field in ['lesson_1','lesson_2','lesson_3','challenge_1','challenge_2','recommended_action',
+                      'priority_1_objective','priority_1_activity','priority_1_output',
+                      'priority_2_objective','priority_2_activity','priority_2_output',
+                      'priority_3_objective','priority_3_activity','priority_3_output']:
+            setattr(summary, field, request.POST.get(field, ''))
+        summary.save()
+        action = request.POST.get('action', 'save')
+        if action == 'submit':
+            wp.status = 'submitted'
+            wp.submitted_at = timezone.now()
+            wp.save()
+            messages.success(request, f"Work plan submitted for {wp.week_label}.")
+        else:
+            messages.success(request, "Work plan saved.")
+        return redirect('workplan_detail', pk=wp.pk)
+    days_data = {d.day: d for d in wp.days.all()}
+    summary = getattr(wp, 'summary', None)
+    return render(request, 'resources/workplan_form.html', {
+        'title': f"Work Plan — {wp.week_label}",
+        'week_label': wp.week_label,
+        'days': DAYS,
+        'days_data': days_data,
+        'summary': summary,
+        'obj': wp,
+    })
+
+
+@login_required
+def workplan_detail(request, pk):
+    wp = get_object_or_404(WorkPlanSubmission, pk=pk)
+    scope = _workplan_scope(request.user)
+    if not scope.filter(pk=pk).exists():
+        messages.error(request, "Access denied."); return redirect('workplan_list')
+    if request.method == 'POST' and request.user.is_superuser_or_tech or \
+       (hasattr(request.user, 'role') and request.user.role in ('country', 'county', 'subcounty')):
+        if request.method == 'POST':
+            from django.utils import timezone
+            wp.review_comment = request.POST.get('review_comment', '')
+            wp.status = 'reviewed'
+            wp.reviewed_by = request.user
+            wp.reviewed_at = timezone.now()
+            wp.save()
+            notify(wp.user, f"Your work plan for {wp.week_label} has been reviewed.", 'workplan', wp.pk)
+            messages.success(request, "Work plan reviewed.")
+            return redirect('workplan_detail', pk=pk)
+    days_data = {d.day: d for d in wp.days.all()}
+    summary = getattr(wp, 'summary', None)
+    can_review = request.user != wp.user and request.user.role in ('superuser', 'tech_team', 'country', 'county', 'subcounty')
+    can_edit = (wp.user == request.user and wp.status != 'reviewed') or request.user.is_superuser_or_tech
+    return render(request, 'resources/workplan_detail.html', {
+        'wp': wp,
+        'days': ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+        'days_data': days_data,
+        'summary': summary,
+        'can_review': can_review,
+        'can_edit': can_edit,
+    })

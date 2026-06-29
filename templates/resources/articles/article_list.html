@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}How-To Articles{% endblock %}
+{% block topbar_title %}How-To Articles{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">How-To Articles</div>
+    <div class="page-subtitle">Guides and resources for field work</div>
+  </div>
+  <div class="page-header-actions">
+    {% if request.user.is_superuser_or_tech %}
+    <a href="{% url 'article_categories' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-tags"></i> Categories</a>
+    <a href="{% url 'article_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New Article</a>
+    {% endif %}
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:220px 1fr;gap:24px;align-items:start;">
+  <!-- Sidebar categories -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:14px 16px;font-weight:800;font-size:0.82rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--gray-100);">Categories</div>
+    <div style="padding:8px 0;">
+      <a href="{% url 'article_list' %}{% if search %}?q={{ search }}{% endif %}" class="nav-item {% if not cat_f %}active{% endif %}" style="padding:8px 16px;display:flex;justify-content:space-between;">
+        All Articles
+      </a>
+      {% for cat in categories %}
+      <a href="?category={{ cat.pk }}{% if search %}&q={{ search }}{% endif %}" class="nav-item {% if cat_f == cat.pk|stringformat:'s' %}active{% endif %}" style="padding:8px 16px;display:flex;justify-content:space-between;">
+        {{ cat.name }}
+        <span class="badge badge-secondary" style="font-size:0.65rem;">{{ cat.articles.count }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Articles -->
+  <div>
+    <form method="get" style="margin-bottom:20px;">
+      {% if cat_f %}<input type="hidden" name="category" value="{{ cat_f }}">{% endif %}
+      <div class="search-wrap">
+        <span class="si"><i class="fa-solid fa-magnifying-glass"></i></span>
+        <input type="text" name="q" class="form-control" placeholder="Search articles..." value="{{ search }}">
+      </div>
+    </form>
+
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      {% for article in articles %}
+      <a href="{% url 'article_detail' article.pk %}" style="text-decoration:none;">
+        <div class="card" style="padding:0;overflow:hidden;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow=''">
+          <div style="display:flex;gap:0;">
+            {% if article.cover_image %}
+            <img src="{{ article.cover_image.url }}" style="width:160px;height:100px;object-fit:cover;flex-shrink:0;">
+            {% endif %}
+            <div style="padding:16px 20px;flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                {% if article.category %}<span class="badge badge-sky" style="font-size:0.68rem;">{{ article.category.name }}</span>{% endif %}
+                {% if article.video_url %}<span class="badge badge-secondary" style="font-size:0.68rem;"><i class="fa-solid fa-play"></i> Video</span>{% endif %}
+              </div>
+              <div style="font-weight:800;font-size:0.95rem;color:var(--gray-900);margin-bottom:4px;">{{ article.title }}</div>
+              <div style="font-size:0.78rem;color:var(--gray-400);">{{ article.created_at|date:"M d, Y" }} &bull; {{ article.created_by.get_full_name|default:"DHHD Team" }}</div>
+            </div>
+          </div>
+        </div>
+      </a>
+      {% empty %}
+      <div class="empty-state">
+        <div class="empty-icon"><i class="fa-solid fa-book-open"></i></div>
+        <div class="empty-title">No articles found</div>
+        <div class="empty-sub">{% if search %}Try a different search term.{% else %}No articles published yet.{% endif %}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}Work Plan — {{ wp.week_label }}{% endblock %}
+{% block topbar_title %}Work Plan — {{ wp.week_label }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-title">Work Plan</div>
+    <div class="page-subtitle" style="font-weight:700;color:var(--lg-blue);">
+      {{ wp.week_label }} &bull; {{ wp.user.get_full_name }}
+      {% if wp.chu %}&bull; {{ wp.chu.name }}{% endif %}
+    </div>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'workplan_list' %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    {% if can_edit %}
+    <a href="{% url 'workplan_edit' wp.pk %}" class="btn btn-outline btn-sm"><i class="fa-solid fa-pen"></i> Edit</a>
+    {% endif %}
+    <span class="badge {% if wp.status == 'draft' %}badge-secondary{% elif wp.status == 'submitted' %}badge-warning{% else %}badge-success{% endif %}" style="font-size:0.82rem;padding:8px 14px;">
+      {{ wp.get_status_display }}
+    </span>
+  </div>
+</div>
+
+<!-- THIS WEEK TABLE -->
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-header" style="background:var(--lg-blue);">
+    <span class="card-title" style="color:white;">CHO Report — {{ wp.week_label }}</span>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <div class="table-container">
+      <table style="table-layout:fixed;">
+        <colgroup>
+          <col style="width:90px;"><col><col><col><col><col><col>
+        </colgroup>
+        <thead>
+          <tr style="background:var(--lg-blue-light);">
+            <th style="font-size:0.75rem;">Day</th>
+            <th style="font-size:0.75rem;">Objective</th>
+            <th style="font-size:0.75rem;">Activity</th>
+            <th style="font-size:0.75rem;">Expected Output</th>
+            <th style="font-size:0.75rem;">Actual Results</th>
+            <th style="font-size:0.75rem;">Challenges</th>
+            <th style="font-size:0.75rem;">Next Steps</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for day in days %}
+          {% with d=days_data|default:None %}
+          <tr style="background:{% cycle 'var(--gray-50)' 'white' %};">
+            <td style="font-weight:800;color:var(--lg-blue);font-size:0.78rem;text-transform:uppercase;vertical-align:top;">{{ day|title }}</td>
+            {% if days_data %}
+              {% with row=days_data|get_item:day %}
+              <td style="font-size:0.82rem;">{{ row.objective|default:"—"|linebreaksbr }}</td>
+              <td style="font-size:0.82rem;">{{ row.activity|default:"—"|linebreaksbr }}</td>
+              <td style="font-size:0.82rem;">{{ row.expected_output|default:"—"|linebreaksbr }}</td>
+              <td style="font-size:0.82rem;">{{ row.actual_results|default:"—"|linebreaksbr }}</td>
+              <td style="font-size:0.82rem;">{{ row.challenges|default:"—"|linebreaksbr }}</td>
+              <td style="font-size:0.82rem;">{{ row.next_steps|default:"—"|linebreaksbr }}</td>
+              {% endwith %}
+            {% else %}
+              <td colspan="6" style="color:var(--gray-400);font-size:0.82rem;">Not filled</td>
+            {% endif %}
+          </tr>
+          {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- LESSONS & CHALLENGES -->
+{% if summary %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+  <div class="card">
+    <div class="card-header" style="background:var(--success-light);"><span class="card-title" style="color:var(--success);">Lessons Learnt</span></div>
+    <div class="card-body">
+      {% for label, val in lessons %}
+      <div style="margin-bottom:12px;">
+        <div style="font-size:0.72rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:2px;">{{ label }}</div>
+        <div style="font-size:0.84rem;">{{ val|default:"—" }}</div>
+      </div>
+      {% endfor %}
+      <div style="margin-bottom:12px;"><div style="font-size:0.72rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:2px;">Lesson 1</div><div style="font-size:0.84rem;">{{ summary.lesson_1|default:"—" }}</div></div>
+      <div style="margin-bottom:12px;"><div style="font-size:0.72rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:2px;">Lesson 2</div><div style="font-size:0.84rem;">{{ summary.lesson_2|default:"—" }}</div></div>
+      <div><div style="font-size:0.72rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:2px;">Lesson 3</div><div style="font-size:0.84rem;">{{ summary.lesson_3|default:"—" }}</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header" style="background:var(--danger-light);"><span class="card-title" style="color:var(--danger);">Persistent Challenges</span></div>
+    <div class="card-body">
+      <div style="margin-bottom:12px;"><div style="font-size:0.72rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:2px;">Challenge 1</div><div style="font-size:0.84rem;">{{ summary.challenge_1|default:"—" }}</div></div>
+      <div style="margin-bottom:12px;"><div style="font-size:0.72rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:2px;">Challenge 2</div><div style="font-size:0.84rem;">{{ summary.challenge_2|default:"—" }}</div></div>
+      <div><div style="font-size:0.72rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:2px;">Recommended Action</div><div style="font-size:0.84rem;">{{ summary.recommended_action|default:"—" }}</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- NEXT WEEK PRIORITIES -->
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-header" style="background:var(--lg-orange-light);"><span class="card-title" style="color:var(--lg-orange);">Next Week's Priorities</span></div>
+  <div class="card-body" style="padding:0;">
+    <div class="table-container">
+      <table>
+        <thead><tr style="background:var(--lg-orange-light);"><th>Priority</th><th>Objective</th><th>Activity</th><th>Expected Output</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:700;color:var(--lg-orange);">Priority 1</td><td style="font-size:0.82rem;">{{ summary.priority_1_objective|default:"—" }}</td><td style="font-size:0.82rem;">{{ summary.priority_1_activity|default:"—" }}</td><td style="font-size:0.82rem;">{{ summary.priority_1_output|default:"—" }}</td></tr>
+          <tr><td style="font-weight:700;color:var(--lg-orange);">Priority 2</td><td style="font-size:0.82rem;">{{ summary.priority_2_objective|default:"—" }}</td><td style="font-size:0.82rem;">{{ summary.priority_2_activity|default:"—" }}</td><td style="font-size:0.82rem;">{{ summary.priority_2_output|default:"—" }}</td></tr>
+          <tr><td style="font-weight:700;color:var(--lg-orange);">Priority 3</td><td style="font-size:0.82rem;">{{ summary.priority_3_objective|default:"—" }}</td><td style="font-size:0.82rem;">{{ summary.priority_3_activity|default:"—" }}</td><td style="font-size:0.82rem;">{{ summary.priority_3_output|default:"—" }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- REVIEW SECTION -->
+{% if wp.status == 'reviewed' %}
+<div class="card" style="margin-bottom:24px;border-left:4px solid var(--success);">
+  <div class="card-header"><span class="card-title"><i class="fa-solid fa-circle-check" style="color:var(--success);margin-right:8px;"></i>Reviewed</span></div>
+  <div class="card-body">
+    <div style="font-size:0.82rem;color:var(--gray-500);margin-bottom:6px;">By {{ wp.reviewed_by.get_full_name }} on {{ wp.reviewed_at|date:"M d, Y H:i" }}</div>
+    {% if wp.review_comment %}<div style="font-size:0.88rem;">{{ wp.review_comment }}</div>{% endif %}
+  </div>
+</div>
+{% elif can_review %}
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-header"><span class="card-title">Add Review Comment</span></div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Comment <span class="form-hint">(optional)</span></label>
+        <textarea name="review_comment" class="form-control" rows="3" placeholder="Feedback or observations..."></textarea>
+      </div>
+      <button type="submit" class="btn btn-success"><i class="fa-solid fa-circle-check"></i> Mark as Reviewed</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

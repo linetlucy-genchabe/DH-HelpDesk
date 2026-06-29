@@ -78,6 +78,17 @@
         <span class="nav-icon"><i class="fa-solid fa-triangle-exclamation"></i></span> Incidents
       </a>
 
+      <div class="nav-section-label">Resources</div>
+      <a href="{% url 'workplan_list' %}" class="nav-item {% if 'workplan' in request.resolver_match.url_name %}active{% endif %}">
+       <span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span> Work Plans
+      </a>
+      <a href="{% url 'app_links' %}" class="nav-item {% if request.resolver_match.url_name == 'app_links' %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-link"></i></span> App Links
+      </a>
+      <a href="{% url 'article_list' %}" class="nav-item {% if 'article' in request.resolver_match.url_name %}active{% endif %}">
+        <span class="nav-icon"><i class="fa-solid fa-book-open"></i></span> How-To Articles
+      </a>
+
       {% if request.user.role != 'cha' %}
       <div class="nav-section">Analytics</div>
       <a href="{% url 'incident_analytics' %}" class="nav-item {% if request.resolver_match.url_name == 'incident_analytics' %}active{% endif %}">
