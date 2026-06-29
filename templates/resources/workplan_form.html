@@ -48,23 +48,32 @@
             </tr>
           </thead>
           <tbody>
-            {% for day in days %}
-            {% with day_data=days_data|default:None %}
-            {% with d=days_data|default_if_none:None %}
-            <tr style="background:{% cycle 'var(--gray-50)' 'white' %};">
-              <td style="font-weight:800;color:var(--lg-blue);font-size:0.78rem;text-transform:uppercase;vertical-align:top;padding-top:12px;">
-                {{ day|title }}
-              </td>
-              {% for field in 'objective,activity,expected_output,actual_results,challenges,next_steps'|split:',' %}
-              <td style="padding:4px;">
-                <textarea name="{{ day }}_{{ field }}" class="form-control" rows="3" style="font-size:0.78rem;resize:vertical;min-height:60px;">{% if days_data %}{% with val=days_data|get_item:day %}{% if val %}{{ val|get_attr:field }}{% endif %}{% endwith %}{% endif %}</textarea>
-              </td>
-              {% endfor %}
-            </tr>
-            {% endwith %}
-            {% endwith %}
-            {% endfor %}
-          </tbody>
+  {% for day in days %}
+  <tr style="background:{% cycle 'var(--gray-50)' 'white' %};">
+    <td style="font-weight:800;color:var(--lg-blue);font-size:0.78rem;text-transform:uppercase;vertical-align:top;padding-top:12px;">
+      {{ day|title }}
+    </td>
+    <td style="padding:4px;">
+      <textarea name="{{ day }}_objective" class="form-control" rows="3" style="font-size:0.78rem;resize:vertical;min-height:60px;">{% if days_data %}{% with row=days_data|get_item:day %}{{ row.objective|default:'' }}{% endwith %}{% endif %}</textarea>
+    </td>
+    <td style="padding:4px;">
+      <textarea name="{{ day }}_activity" class="form-control" rows="3" style="font-size:0.78rem;resize:vertical;min-height:60px;">{% if days_data %}{% with row=days_data|get_item:day %}{{ row.activity|default:'' }}{% endwith %}{% endif %}</textarea>
+    </td>
+    <td style="padding:4px;">
+      <textarea name="{{ day }}_expected_output" class="form-control" rows="3" style="font-size:0.78rem;resize:vertical;min-height:60px;">{% if days_data %}{% with row=days_data|get_item:day %}{{ row.expected_output|default:'' }}{% endwith %}{% endif %}</textarea>
+    </td>
+    <td style="padding:4px;">
+      <textarea name="{{ day }}_actual_results" class="form-control" rows="3" style="font-size:0.78rem;resize:vertical;min-height:60px;">{% if days_data %}{% with row=days_data|get_item:day %}{{ row.actual_results|default:'' }}{% endwith %}{% endif %}</textarea>
+    </td>
+    <td style="padding:4px;">
+      <textarea name="{{ day }}_challenges" class="form-control" rows="3" style="font-size:0.78rem;resize:vertical;min-height:60px;">{% if days_data %}{% with row=days_data|get_item:day %}{{ row.challenges|default:'' }}{% endwith %}{% endif %}</textarea>
+    </td>
+    <td style="padding:4px;">
+      <textarea name="{{ day }}_next_steps" class="form-control" rows="3" style="font-size:0.78rem;resize:vertical;min-height:60px;">{% if days_data %}{% with row=days_data|get_item:day %}{{ row.next_steps|default:'' }}{% endwith %}{% endif %}</textarea>
+    </td>
+  </tr>
+  {% endfor %}
+</tbody>
         </table>
       </div>
     </div>
