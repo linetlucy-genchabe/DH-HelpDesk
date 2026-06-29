@@ -20,13 +20,9 @@
   <div class="card" style="padding:0;overflow:hidden;">
     <div style="padding:24px;display:flex;flex-direction:column;gap:16px;height:100%;">
       <div style="display:flex;align-items:center;gap:16px;">
-        {% if link.logo %}
-        <img src="{{ link.logo.url }}" alt="{{ link.name }}" style="width:52px;height:52px;object-fit:contain;border-radius:10px;border:1px solid var(--gray-100);padding:4px;">
-        {% else %}
-        <div style="width:52px;height:52px;background:var(--lg-blue-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
-          <i class="fa-solid fa-link" style="color:var(--lg-blue);font-size:1.2rem;"></i>
-        </div>
-        {% endif %}
+       <div style="width:52px;height:52px;background:var(--lg-blue-light);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--lg-blue);font-size:1.2rem;"></i>
+      </div>
         <div>
           <div style="font-weight:800;font-size:0.95rem;color:var(--gray-900);">{{ link.name }}</div>
           {% if link.county %}<div style="font-size:0.72rem;color:var(--gray-400);margin-top:2px;">{{ link.county.name }}</div>{% endif %}
